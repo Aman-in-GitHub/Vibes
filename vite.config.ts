@@ -44,7 +44,7 @@ export default defineConfig({
         name: 'Vibes',
         short_name: 'Vibes',
         theme_color: '#000000',
-        background_color: '#ffffff',
+        background_color: '#000000',
         display: 'standalone',
         scope: '/',
         start_url: '/',

@@ -47,6 +47,8 @@ async function fetchPosts({ pageParam = 0 }): Promise<PostType[]> {
     throw error;
   }
 
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
   return data || [];
 }
 
@@ -176,8 +178,12 @@ export default function Feed() {
 
   if (status === 'pending') {
     return (
-      <div className="flex h-[100dvh] items-center justify-center">
-        <div className="border-primary h-12 w-12 animate-spin rounded-full border-4 border-t-transparent"></div>
+      <div className="motion-opacity-out motion-delay-[2s] flex h-[100dvh] items-center justify-center">
+        <img
+          src="/logo.svg"
+          alt="Vibes Logo"
+          className="motion-opacity-in size-52 rounded-full"
+        />
       </div>
     );
   }
@@ -214,7 +220,7 @@ export default function Feed() {
           <section
             key={post.id}
             onClick={() => handleDoubleTap(post)}
-            className="relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
+            className="motion-opacity-in relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
           >
             <div className="-mt-8 px-4">
               <h2 className={`${font} text-5xl`}>
@@ -236,24 +242,26 @@ export default function Feed() {
               )}
             </p>
 
-            <Marquee
-              autoFill={true}
-              speed={50}
-              gradient={true}
-              gradientColor="black"
-              gradientWidth={35}
-            >
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className={`mr-3 rounded-sm ${backgroundColor} px-2 py-1 ${textColor}`}
-                >
-                  {tag}
-                </span>
-              ))}
-            </Marquee>
+            <div className="motion-opacity-in min-h-6 duration-[3s]">
+              <Marquee
+                autoFill={true}
+                speed={50}
+                gradient={true}
+                gradientColor="hsl(0 0% 3.9%)"
+                gradientWidth={35}
+              >
+                {post.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className={`mr-3 rounded-sm ${backgroundColor} px-2 py-1 ${textColor}`}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </Marquee>
+            </div>
 
-            <div className="absolute bottom-8 z-[1000] flex w-full items-center justify-between px-4">
+            <div className="motion-preset-slide-up absolute bottom-8 z-[1000] flex w-full items-center justify-between px-4 duration-[1.5s]">
               <button
                 onClick={() =>
                   handleShare(

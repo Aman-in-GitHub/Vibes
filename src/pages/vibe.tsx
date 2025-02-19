@@ -17,7 +17,7 @@ export default function Vibe() {
       : 'from-blue-500 to-blue-600';
 
   return (
-    <main className="p-2">
+    <main className="motion-opacity-in px-4 duration-300">
       <ScrollProgress className={`${gradient}`} />
 
       <Markdown
@@ -25,7 +25,7 @@ export default function Vibe() {
         components={{
           // Headings
           h1: ({ node, ...props }) => (
-            <h1 {...props} className={`${font} mb-6 text-5xl`} />
+            <h1 {...props} className={`${font} mt-4 mb-6 text-5xl`} />
           ),
           h2: ({ node, ...props }) => (
             <h2
