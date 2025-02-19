@@ -26,8 +26,7 @@ button {
   font-display: swap;
   font-family: 'Inter';
   font-style: normal;
-  font-weight: 900;
-  src: url('/fonts/Inter-900.woff2') format('woff2');
+  src: url('/fonts/Inter.woff2') format('woff2');
 }
 
 /* Lora */
@@ -35,16 +34,7 @@ button {
   font-display: swap;
   font-family: 'Lora';
   font-style: normal;
-  font-weight: 400;
-  src: url('/fonts/Lora-400.woff2') format('woff2');
-}
-
-@font-face {
-  font-display: swap;
-  font-family: 'Lora';
-  font-style: normal;
-  font-weight: 600;
-  src: url('/fonts/Lora-600.woff2') format('woff2');
+  src: url('/fonts/Lora.woff2') format('woff2');
 }
 
 /* Creepster */
@@ -52,13 +42,21 @@ button {
   font-display: swap;
   font-family: 'Creepster';
   font-style: normal;
-  font-weight: 400;
-  src: url('/fonts/Creepster-400.woff2') format('woff2');
+  src: url('/fonts/Creepster.woff2') format('woff2');
+}
+
+/* GeneralSans */
+@font-face {
+  font-display: swap;
+  font-family: 'GeneralSans';
+  font-style: normal;
+  src: url('/fonts/GeneralSans.woff2') format('woff2');
 }
 
 @theme {
   --font-inter: Inter, sans-serif;
   --font-lora: Lora, serif;
+  --font-general: GeneralSans, serif;
   --font-horror: Creepster, cursive;
 }
 

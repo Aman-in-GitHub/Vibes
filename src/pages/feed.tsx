@@ -23,8 +23,13 @@ type PostType = {
   id: string;
   title: string;
   content: string;
+  preview: string;
   url: string;
   type: (typeof POST_TYPES)[number];
+  author: string;
+  platform: string;
+  created_at: string;
+  scraped_at: string;
   tags: string[];
 };
 
@@ -33,10 +38,10 @@ async function fetchPosts({ pageParam = 0 }): Promise<PostType[]> {
   const to = from + POSTS_PER_PAGE - 1;
 
   const { data, error } = await supabase
-    .from('raw_posts')
+    .from('posts')
     .select('*')
     .range(from, to)
-    .order('title', { ascending: false });
+    .order('title', { ascending: true });
 
   if (error) {
     throw error;
@@ -77,6 +82,7 @@ export default function Feed() {
 
   const {
     data,
+    error,
     fetchNextPage,
     hasNextPage = true,
     isFetchingNextPage,
@@ -127,7 +133,11 @@ export default function Feed() {
 
   function handleShare(post: PostType, url: string) {
     if (navigator.share) {
-      navigator.share({ url: url, title: post.title });
+      navigator.share({
+        title: post.title,
+        text: `${post.title.charAt(0).toUpperCase() + post.title.slice(1)} - Vibes`,
+        url: url
+      });
     } else {
       copy(url);
       toast.success('URL copied to your clipboard');
@@ -172,6 +182,14 @@ export default function Feed() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex h-[100dvh] items-center justify-center bg-red-950">
+        <h2 className="text-xl text-red-500">{JSON.stringify(error)}</h2>
+      </div>
+    );
+  }
+
   return (
     <main
       ref={mainRef}
@@ -183,80 +201,89 @@ export default function Feed() {
       }}
     >
       {posts.map((post) => {
-        const font = post.type === 'horror' ? 'font-horror' : 'font-inter';
+        const font =
+          post.type === 'horror' ? 'font-horror' : 'font-inter font-black';
+        const textColor =
+          post.type === 'horror' ? 'text-red-500' : 'text-blue-500';
+        const backgroundColor =
+          post.type === 'horror' ? 'bg-red-950' : 'bg-blue-950';
+        const title = post.title.charAt(0).toUpperCase() + post.title.slice(1);
         const isBookmarked = bookmarks.some((item) => item.id === post.id);
+
         return (
           <section
             key={post.id}
             onClick={() => handleDoubleTap(post)}
             className="relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
           >
-            <div className="px-4">
+            <div className="-mt-8 px-4">
               <h2 className={`${font} text-5xl`}>
-                {post.title.length > 75
-                  ? post.title.slice(0, 75) + '...'
-                  : post.title}
+                {title.length > 69 ? title.slice(0, 69) + '...' : title}
               </h2>
 
-              <p className="font-lora flex items-center gap-1 text-sm">
+              <p className="font-lora mt-1 flex items-center gap-1 text-sm">
                 <Hourglass />
                 {calculateReadingTime(post.content)} min
               </p>
             </div>
 
-            <p className="font-lora px-4 text-lg">
-              {post.content.length > 350
-                ? post.content.slice(0, 350)
-                : post.content}
-              {post.content.length > 350 && (
+            <p className="font-lora px-4">
+              {post.preview.length > 350
+                ? post.preview.slice(0, 350)
+                : post.preview}
+              {post.preview.length > 350 && (
                 <button onClick={() => handleReadMore(post)}>... more</button>
               )}
             </p>
+
             <Marquee
               autoFill={true}
               speed={50}
               gradient={true}
               gradientColor="black"
-              gradientWidth={25}
+              gradientWidth={35}
             >
               {post.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="mr-3 rounded-sm bg-red-950 px-2 py-1 text-red-400"
+                  className={`mr-3 rounded-sm ${backgroundColor} px-2 py-1 ${textColor}`}
                 >
                   {tag}
                 </span>
               ))}
             </Marquee>
 
-            <div className="absolute bottom-4 z-[1000] flex w-full items-center justify-between px-4">
+            <div className="absolute bottom-8 z-[1000] flex w-full items-center justify-between px-4">
               <button
                 onClick={() =>
-                  handleShare(post, `http://localhost:5173/vibe/${post.id}`)
+                  handleShare(
+                    post,
+                    `https://thevibes.pages.dev/vibe/${post.id}`
+                  )
                 }
-                className="rounded-full bg-red-950 p-4 duration-300 active:scale-90"
+                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
               >
-                <Share className="text-4xl text-red-500" />
+                <Share className={`${textColor} text-4xl`} />
               </button>
 
               <button
                 onClick={() => {
                   handleBookmark(post);
                 }}
-                className="rounded-full bg-red-950 p-4 duration-300 active:scale-90"
+                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
               >
                 {isBookmarked ? (
-                  <BookmarkFill className="text-4xl text-red-500" />
+                  <BookmarkFill className={`text-4xl ${textColor}`} />
                 ) : (
-                  <BookmarkLine className="text-4xl text-red-500" />
+                  <BookmarkLine className={`text-4xl ${textColor}`} />
                 )}
               </button>
 
               <button
                 onClick={() => handleReadMore(post)}
-                className="rounded-full bg-red-950 p-4 duration-300 active:scale-90"
+                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
               >
-                <Play className="text-4xl text-red-500" />
+                <Play className={`text-4xl ${textColor}`} />
               </button>
             </div>
           </section>
