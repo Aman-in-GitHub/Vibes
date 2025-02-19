@@ -17,7 +17,7 @@ let supabase: SupabaseClient;
 try {
   supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 } catch (error) {
-  throw new Error('Supabase client initialization failed');
+  throw new Error(`Supabase client initialization failed: ${error}`);
 }
 
 export default supabase;

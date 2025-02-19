@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import supabase from '@/lib/supabase';
 import { useNavigate, useLocation } from 'react-router';
+import {
+  PiHourglass as Hourglass,
+  PiShareFat as Share,
+  PiPlay as Play,
+  PiBookmarkSimple as BookmarkLine,
+  PiBookmarkSimpleFill as BookmarkFill
+} from 'react-icons/pi';
+import Marquee from 'react-fast-marquee';
+import copy from 'copy-to-clipboard';
+import supabase from '@/lib/supabase';
+import { calculateReadingTime } from '@/utils';
+import { toast } from 'sonner';
+import { useDoubleTap } from '@/hooks/useDoubleTap';
 
 const POSTS_PER_PAGE = 10;
-const FETCH_THRESHOLD = 4;
+const POSTS_BEFORE_FETCH = 4;
 const POST_TYPES = ['horror', 'nsfw'];
 
 type PostType = {
@@ -13,30 +25,33 @@ type PostType = {
   content: string;
   url: string;
   type: (typeof POST_TYPES)[number];
+  tags: string[];
 };
 
-async function fetchPosts(): Promise<PostType[]> {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+async function fetchPosts({ pageParam = 0 }): Promise<PostType[]> {
+  const from = pageParam * POSTS_PER_PAGE;
+  const to = from + POSTS_PER_PAGE - 1;
 
   const { data, error } = await supabase
     .from('raw_posts')
     .select('*')
-    .limit(POSTS_PER_PAGE);
+    .range(from, to)
+    .order('title', { ascending: false });
 
   if (error) {
     throw error;
   }
 
-  return data;
+  return data || [];
 }
 
 export default function Feed() {
   const currentPostIndex = useRef(0);
-  const lastFetchedAtIndex = useRef(0);
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
+  const [bookmarks, setBookmarks] = useState<PostType[]>([]);
 
   useEffect(() => {
     const navigationState = sessionStorage.getItem(
@@ -79,21 +94,23 @@ export default function Feed() {
 
       const scrollTop = mainRef.current.scrollTop;
       const viewportHeight = window.innerHeight;
-      const newIndex = Math.floor(scrollTop / viewportHeight);
+      const currentIndex = Math.floor(scrollTop / viewportHeight);
 
-      if (newIndex !== currentPostIndex.current) {
-        currentPostIndex.current = newIndex;
-        const scrolledPostsSinceLastFetch =
-          newIndex - lastFetchedAtIndex.current;
+      // Update current post index
+      currentPostIndex.current = currentIndex;
 
-        if (
-          scrolledPostsSinceLastFetch >= FETCH_THRESHOLD &&
-          !isFetchingNextPage &&
-          hasNextPage
-        ) {
-          lastFetchedAtIndex.current = newIndex;
-          fetchNextPage();
-        }
+      // Calculate total posts loaded and check if we're near the end
+      const totalPosts =
+        data?.pages.reduce((acc, page) => acc + page.length, 0) || 0;
+      const remainingPosts = totalPosts - (currentIndex + 1);
+
+      // Fetch more posts if we're POSTS_BEFORE_FETCH away from the end
+      if (
+        remainingPosts <= POSTS_BEFORE_FETCH &&
+        !isFetchingNextPage &&
+        hasNextPage
+      ) {
+        fetchNextPage();
       }
     }
 
@@ -102,7 +119,34 @@ export default function Feed() {
       mainElement.addEventListener('scroll', handleScroll, { passive: true });
       return () => mainElement.removeEventListener('scroll', handleScroll);
     }
-  }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage, data?.pages]);
+
+  const handleDoubleTap = useDoubleTap<PostType>((post) => {
+    handleBookmark(post);
+  }, 300);
+
+  function handleShare(post: PostType, url: string) {
+    if (navigator.share) {
+      navigator.share({ url: url, title: post.title });
+    } else {
+      copy(url);
+      toast.success('URL copied to your clipboard');
+    }
+  }
+
+  async function handleBookmark(post: PostType) {
+    setBookmarks((prevBookmarks) => {
+      const isBookmarked = prevBookmarks.some((item) => item.id === post.id);
+
+      if (isBookmarked) {
+        toast.warning('Vibe removed from your bookmarks');
+        return prevBookmarks.filter((item) => item.id !== post.id);
+      } else {
+        toast.success('Vibe saved to your bookmarks');
+        return [...prevBookmarks, post];
+      }
+    });
+  }
 
   function handleReadMore(post: PostType) {
     if (mainRef.current) {
@@ -138,28 +182,86 @@ export default function Feed() {
         WebkitOverflowScrolling: 'touch'
       }}
     >
-      {posts.map((post) => (
-        <section
-          key={post.id}
-          className="relative flex h-[100dvh] w-full snap-start snap-always flex-col items-center justify-center p-4"
-        >
-          <div>
-            <h2 className="text-5xl font-black">{post.title}</h2>
-            <p className="text-lg">
-              {post.content.length > 500
-                ? post.content.slice(0, 500)
+      {posts.map((post) => {
+        const font = post.type === 'horror' ? 'font-horror' : 'font-inter';
+        const isBookmarked = bookmarks.some((item) => item.id === post.id);
+        return (
+          <section
+            key={post.id}
+            onClick={() => handleDoubleTap(post)}
+            className="relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
+          >
+            <div className="px-4">
+              <h2 className={`${font} text-5xl`}>
+                {post.title.length > 75
+                  ? post.title.slice(0, 75) + '...'
+                  : post.title}
+              </h2>
+
+              <p className="font-lora flex items-center gap-1 text-sm">
+                <Hourglass />
+                {calculateReadingTime(post.content)} min
+              </p>
+            </div>
+
+            <p className="font-lora px-4 text-lg">
+              {post.content.length > 350
+                ? post.content.slice(0, 350)
                 : post.content}
-              {post.content.length > 500 && (
+              {post.content.length > 350 && (
                 <button onClick={() => handleReadMore(post)}>... more</button>
               )}
             </p>
+            <Marquee
+              autoFill={true}
+              speed={50}
+              gradient={true}
+              gradientColor="black"
+              gradientWidth={25}
+            >
+              {post.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="mr-3 rounded-sm bg-red-950 px-2 py-1 text-red-400"
+                >
+                  {tag}
+                </span>
+              ))}
+            </Marquee>
 
-            <span>{post.type}</span>
-            <br />
-            <button onClick={() => handleReadMore(post)}>read more</button>
-          </div>
-        </section>
-      ))}
+            <div className="absolute bottom-4 z-[1000] flex w-full items-center justify-between px-4">
+              <button
+                onClick={() =>
+                  handleShare(post, `http://localhost:5173/vibe/${post.id}`)
+                }
+                className="rounded-full bg-red-950 p-4 duration-300 active:scale-90"
+              >
+                <Share className="text-4xl text-red-500" />
+              </button>
+
+              <button
+                onClick={() => {
+                  handleBookmark(post);
+                }}
+                className="rounded-full bg-red-950 p-4 duration-300 active:scale-90"
+              >
+                {isBookmarked ? (
+                  <BookmarkFill className="text-4xl text-red-500" />
+                ) : (
+                  <BookmarkLine className="text-4xl text-red-500" />
+                )}
+              </button>
+
+              <button
+                onClick={() => handleReadMore(post)}
+                className="rounded-full bg-red-950 p-4 duration-300 active:scale-90"
+              >
+                <Play className="text-4xl text-red-500" />
+              </button>
+            </div>
+          </section>
+        );
+      })}
     </main>
   );
 }
