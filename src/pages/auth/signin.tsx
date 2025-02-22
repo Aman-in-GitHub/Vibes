@@ -3,12 +3,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router';
+import { toast } from 'sonner';
 import useAuth from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import Loading from '@/components/Loading';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+
 const SignInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters')
@@ -32,6 +34,7 @@ function SignIn() {
   }
 
   if (isAuthenticated) {
+    toast.warning('You’re already logged in. Redirecting your feed');
     return <Navigate to="/" replace={true} />;
   }
 
@@ -56,17 +59,12 @@ function SignIn() {
   }
 
   if (error) {
-    return (
-      <div>
-        <h2>Error</h2>
-        <p>{error}</p>
-      </div>
-    );
+    toast.error(error);
   }
 
   return (
     <main className="motion-blur-in motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
-      <h1 className="mb-4 text-8xl font-bold">Log in to your account</h1>
+      <h1 className="mb-4 text-7xl font-bold">Log in to your account</h1>
 
       <form onSubmit={handleSubmit(onSignIn)} className="space-y-2">
         <div>
@@ -74,7 +72,11 @@ function SignIn() {
           <Input
             {...register('email')}
             type="email"
-            className={formState.errors.email ? 'border-red-500' : ''}
+            className={
+              formState.errors.email
+                ? 'ring ring-red-500 focus-visible:ring-red-500'
+                : ''
+            }
           />
           {formState.errors.email && (
             <p className="mt-1 text-xs font-semibold text-red-500">
@@ -87,7 +89,11 @@ function SignIn() {
           <Label htmlFor="password">Password</Label>
           <PasswordInput
             {...register('password')}
-            className={formState.errors.password ? 'border-red-500' : ''}
+            className={
+              formState.errors.password
+                ? 'ring ring-red-500 focus-visible:ring-red-500'
+                : ''
+            }
           />
           {formState.errors.password && (
             <p className="mt-1 text-xs font-semibold text-red-500">
@@ -99,7 +105,7 @@ function SignIn() {
         <div className="pt-4">
           <button
             type="submit"
-            className="w-full"
+            className="w-full rounded-xs bg-green-600 py-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
             disabled={formState.isSubmitting}
           >
             Sign in

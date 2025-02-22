@@ -8,14 +8,11 @@ function Error({ error, reset }: { error: Error; reset: () => void }) {
       />
 
       <div className="mt-10 text-center text-red-500">
-        <p className="text-lg font-bold">Something went wrong!</p>
-        <p className="mt-2 text-sm">{error.message}</p>
+        <p className="text-xl font-bold">Something went wrong!</p>
+        <p className="mt-1">{error.message}</p>
       </div>
 
-      <button
-        onClick={reset}
-        className="bg-primary mt-10 rounded px-4 py-2 text-white"
-      >
+      <button onClick={reset} className="mt-10 rounded-xs bg-red-600 px-4 py-2">
         Try again
       </button>
     </section>

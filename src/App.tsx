@@ -4,6 +4,7 @@ import SignIn from '@/pages/auth/signin';
 import SignUp from '@/pages/auth/signup';
 import Feed from '@/pages/feed';
 import Vibe from '@/pages/vibe';
+import NotFound from '@/pages/not-found';
 
 function App() {
   const authRedirects = [
@@ -53,6 +54,8 @@ function App() {
 
           <Route path="/auth/sign-in" element={<SignIn />} />
           <Route path="/auth/create-account" element={<SignUp />} />
+
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

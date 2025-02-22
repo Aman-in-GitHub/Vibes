@@ -4,7 +4,6 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from '@/components/ui/sonner';
 import Error from '@/components/Error';
 
@@ -19,8 +18,7 @@ createRoot(document.getElementById('root')!).render(
     >
       <QueryClientProvider client={queryClient}>
         <App />
-        <Toaster />
-        <ReactQueryDevtools initialIsOpen={false} />
+        <Toaster richColors={true} position="top-center" />
       </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>

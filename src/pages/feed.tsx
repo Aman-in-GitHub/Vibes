@@ -20,6 +20,7 @@ import {
 } from '@/utils';
 import { toast } from 'sonner';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
+import Loader from '@/components/Loader';
 
 const POSTS_PER_PAGE = 8;
 const POSTS_BEFORE_FETCH = 4;
@@ -53,7 +54,7 @@ async function fetchPosts({ pageParam = 0 }): Promise<PostType[]> {
     throw error;
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return data || [];
 }
@@ -184,12 +185,8 @@ export default function Feed() {
 
   if (status === 'pending') {
     return (
-      <div className="motion-opacity-out motion-delay-[2s] flex h-[100dvh] items-center justify-center">
-        <img
-          src="/logo.svg"
-          alt="Vibes Logo"
-          className="motion-opacity-in size-52 rounded-full"
-        />
+      <div className="motion-preset-slide-right motion-preset-blur-right flex h-screen flex-col items-center justify-center">
+        <Loader />
       </div>
     );
   }
@@ -223,7 +220,7 @@ export default function Feed() {
           <section
             key={post.id}
             onClick={() => handleDoubleTap(post)}
-            className="motion-opacity-in relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
+            className="motion-opacity-in motion-blur-in relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
           >
             <div className="-mt-8 px-4">
               <h2 className={`${font} text-5xl`}>
@@ -245,7 +242,7 @@ export default function Feed() {
               )}
             </p>
 
-            <div className="motion-opacity-in min-h-6 duration-[3s]">
+            <div className="motion-opacity-in motion-duration-[3s] min-h-6">
               <Marquee
                 autoFill={true}
                 speed={50}
@@ -264,7 +261,7 @@ export default function Feed() {
               </Marquee>
             </div>
 
-            <div className="motion-preset-slide-up absolute bottom-8 z-[1000] flex w-full items-center justify-between px-4 duration-[1.5s]">
+            <div className="motion-preset-slide-up motion-duration-[1.5s] absolute bottom-8 z-[1000] flex w-full items-center justify-between px-4">
               <button
                 onClick={() =>
                   handleShare(
