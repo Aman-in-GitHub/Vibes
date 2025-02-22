@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router';
@@ -8,157 +8,343 @@ import useAuth from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { PasswordInput } from '@/components/ui/password-input';
-import Loading from '@/components/Loading';
+import { PiSpinner as Spinner } from 'react-icons/pi';
+import { Checkbox } from '@/components/ui/checkbox';
+import { REGEXP_ONLY_DIGITS } from 'input-otp';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot
+} from '@/components/ui/input-otp';
 
-const SignUpSchema = z
-  .object({
-    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[\W_]/, 'Password must contain at least one special character'),
-    confirmPassword: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[\W_]/, 'Password must contain at least one special character')
+const SignUpSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Your email is required')
+    .email('Enter a valid email'),
+  name: z.string().min(1, 'Your name is required'),
+  age: z.number().min(12, 'Your must be 12 years or older'),
+  sex: z.enum(['Male', 'Female']),
+  isNsfw: z.boolean().optional(),
+  terms: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the terms to continue'
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords must match',
-    path: ['confirmPassword']
-  });
+});
 
 type SignUpFormData = z.infer<typeof SignUpSchema>;
 
 function SignUp() {
-  const [error, setError] = useState('');
+  const [otp, setOtp] = useState('');
+  const [screen, setScreen] = useState<'signup' | 'otp'>('signup');
   const { isAuthenticated, isLoading } = useAuth();
-  const { register, handleSubmit, formState, reset } = useForm<SignUpFormData>({
+  const {
+    control,
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors, isSubmitting, isSubmitSuccessful },
+    reset
+  } = useForm<SignUpFormData>({
     resolver: zodResolver(SignUpSchema),
     defaultValues: {
       email: '',
-      password: ''
+      name: '',
+      age: 10,
+      sex: 'Male',
+      isNsfw: false,
+      terms: false
     }
   });
 
-  if (isLoading) {
-    return <Loading />;
-  }
+  if (isLoading) return null;
 
   if (isAuthenticated) {
-    toast.warning('You’re already logged in. Redirecting your feed');
+    if (!isSubmitSuccessful) {
+      toast.warning('You’re already logged in. Redirecting to your feed');
+    }
     return <Navigate to="/" replace={true} />;
   }
 
   async function onSignUp(data: SignUpFormData) {
-    setError('');
-
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password
-      });
+      const { data: emailExists, error } = await supabase.rpc(
+        'does_email_exist',
+        { email: data.email }
+      );
 
-      console.log(authData);
-
-      if (authError) {
-        throw authError;
+      if (emailExists) {
+        toast.error('User with this email already exists');
+        return;
       }
 
-      toast.info('Check your email for a verification link');
+      if (error) {
+        throw error;
+      }
 
-      reset();
+      const { error: authError } = await supabase.auth.signInWithOtp({
+        email: data.email
+      });
+
+      if (authError) throw authError;
+
+      toast.info('Check your email for an OTP');
+      setScreen('otp');
     } catch (error) {
-      console.error(error);
-      setError(error instanceof Error ? error.message : 'Something went wrong');
+      console.error('Signup Error:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Something went wrong'
+      );
     }
   }
 
-  if (error) {
-    toast.error(error);
+  async function verifyOTP(OTP: string) {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: getValues('email'),
+        token: OTP,
+        type: 'signup'
+      });
+
+      if (error) throw error;
+
+      const { error: seedError } = await supabase.from('profiles').insert({
+        email: getValues('email'),
+        name: getValues('name'),
+        age: getValues('age'),
+        sex: getValues('sex').toLowerCase(),
+        isNsfw: getValues('isNsfw')
+      });
+
+      if (seedError) {
+        throw seedError;
+      }
+
+      toast.success('Welcome to Vibes');
+
+      reset();
+      setOtp('');
+      return <Navigate to="/" replace={true} />;
+    } catch (error) {
+      console.error(
+        'OTP Verification Error:',
+        error instanceof Error ? error.message : 'Something went wrong'
+      );
+      toast.error(
+        error instanceof Error ? error.message : 'Something went wrong'
+      );
+      setScreen('signup');
+      setOtp('');
+      return;
+    }
   }
 
   return (
     <main className="motion-blur-in motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
-      <h1 className="mb-4 text-7xl font-bold">Create a new account</h1>
+      {screen === 'signup' ? (
+        <>
+          <h1 className="mb-4 text-7xl font-bold">Create a new account</h1>
 
-      <form onSubmit={handleSubmit(onSignUp)} className="space-y-2">
-        <div>
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            {...register('email')}
-            type="email"
-            className={
-              formState.errors.email
-                ? 'ring ring-red-500 focus-visible:ring-red-500'
-                : ''
-            }
-          />
-          {formState.errors.email && (
-            <p className="mt-1 text-xs font-semibold text-red-600">
-              {formState.errors.email.message}
-            </p>
-          )}
-        </div>
+          <form onSubmit={handleSubmit(onSignUp)} className="space-y-4">
+            <div>
+              <Label htmlFor="name">Your Name</Label>
+              <Input
+                id="name"
+                {...register('name')}
+                className={
+                  errors.name
+                    ? 'ring ring-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
+              />
+              {errors.name && (
+                <p className="mt-1 text-xs font-semibold text-red-600">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
 
-        <div>
-          <Label htmlFor="password">Password</Label>
-          <PasswordInput
-            {...register('password')}
-            className={
-              formState.errors.password
-                ? 'ring ring-red-500 focus-visible:ring-red-500'
-                : ''
-            }
-          />
-          {formState.errors.password && (
-            <p className="mt-1 text-xs font-semibold text-red-600">
-              {formState.errors.password.message}
-            </p>
-          )}
-        </div>
+            <div>
+              <Label htmlFor="age">Age</Label>
+              <Input
+                id="age"
+                type="number"
+                {...register('age', { valueAsNumber: true })}
+                className={
+                  errors.age
+                    ? 'ring ring-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
+              />
+              {errors.age && (
+                <p className="mt-1 text-xs font-semibold text-red-600">
+                  {errors.age.message}
+                </p>
+              )}
+            </div>
 
-        <div>
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <PasswordInput
-            {...register('confirmPassword')}
-            className={
-              formState.errors.confirmPassword
-                ? 'ring ring-red-500 focus-visible:ring-red-500'
-                : ''
-            }
-          />
-          {formState.errors.confirmPassword && (
-            <p className="mt-1 text-xs font-semibold text-red-600">
-              {formState.errors.confirmPassword.message}
-            </p>
-          )}
-        </div>
+            <div>
+              <Label>Sex</Label>
+              <Controller
+                name="sex"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-4 text-lg">
+                    <div
+                      onClick={() => field.onChange('Male')}
+                      className={`flex h-20 w-full items-center justify-center rounded-xs bg-blue-600 duration-500 ${
+                        field.value === 'Male' ? '' : 'grayscale'
+                      } cursor-pointer`}
+                    >
+                      Male
+                    </div>
+                    <div
+                      onClick={() => field.onChange('Female')}
+                      className={`flex h-20 w-full items-center justify-center rounded-xs bg-pink-600 duration-500 ${
+                        field.value === 'Female' ? '' : 'grayscale'
+                      } cursor-pointer`}
+                    >
+                      Female
+                    </div>
+                  </div>
+                )}
+              />
+            </div>
 
-        <div className="pt-4">
+            <div>
+              <Label>Adult Content</Label>
+              <Controller
+                name="isNsfw"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-4 text-lg">
+                    <div
+                      onClick={() => field.onChange(false)}
+                      className={`flex h-20 w-full items-center justify-center rounded-xs bg-green-600 duration-500 ${
+                        !field.value ? '' : 'grayscale'
+                      } cursor-pointer`}
+                    >
+                      No, I'm good
+                    </div>
+                    <div
+                      onClick={() => field.onChange(true)}
+                      className={`flex h-20 w-full items-center justify-center rounded-xs bg-red-600 duration-500 ${
+                        field.value ? '' : 'grayscale'
+                      } cursor-pointer`}
+                    >
+                      Yeah Sure
+                    </div>
+                  </div>
+                )}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="email">Email address</Label>
+              <Input
+                id="email"
+                type="email"
+                {...register('email')}
+                className={
+                  errors.email
+                    ? 'ring ring-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
+              />
+              {errors.email && (
+                <p className="mt-1 text-xs font-semibold text-red-600">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center space-x-2">
+                <Controller
+                  name="terms"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="terms"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                <Label
+                  htmlFor="terms"
+                  className="leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  I have read and agree to the{' '}
+                  <span className="text-blue-600 underline underline-offset-2">
+                    terms and conditions
+                  </span>
+                </Label>
+              </div>
+
+              {errors.terms && (
+                <p className="mt-1 text-xs font-semibold text-red-600">
+                  {errors.terms.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-xs bg-rose-600 py-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Spinner className="animate-spin" />}
+                {isSubmitting ? 'Sending you an OTP' : 'Continue'}
+              </button>
+            </div>
+
+            <div>
+              <p className="text-sm">
+                Already have an account?{' '}
+                <Link
+                  to="/auth/sign-in"
+                  className="whitespace-nowrap underline underline-offset-2"
+                >
+                  Log in to your account
+                </Link>
+              </p>
+            </div>
+          </form>
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center">
+          <h1 className="mb-12 text-7xl font-bold">Verify your OTP</h1>
+
+          <InputOTP
+            maxLength={6}
+            pattern={REGEXP_ONLY_DIGITS}
+            value={otp}
+            onChange={(value) => setOtp(value)}
+          >
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+            </InputOTPGroup>
+            <InputOTPSeparator />
+            <InputOTPGroup>
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+
           <button
             type="submit"
-            className="w-full rounded-xs bg-blue-600 py-3 text-lg"
-            disabled={formState.isSubmitting}
+            onClick={() => verifyOTP(otp)}
+            className="mt-12 flex w-full items-center justify-center gap-2 rounded-xs bg-blue-600 py-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Sign up
+            Create your account
           </button>
         </div>
-
-        <div className="pt-2">
-          <p className="text-sm">
-            Already have an account?{' '}
-            <Link
-              to="/auth/sign-in"
-              className="whitespace-nowrap underline underline-offset-2"
-            >
-              Log in to your account
-            </Link>
-          </p>
-        </div>
-      </form>
+      )}
     </main>
   );
 }

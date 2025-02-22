@@ -2,6 +2,7 @@ import { createContext, useEffect, useState } from 'react';
 import { AuthError, Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 export interface AuthState {
   user: User | null;
@@ -30,6 +31,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   async function signOut() {
+    toast.warning('Signing out of Vibes');
+
     try {
       await supabase.auth.signOut();
 
@@ -40,7 +43,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         error: null
       });
 
-      navigate('/auth/sign-in', { replace: true });
+      navigate('/auth/create-account', { replace: true });
     } catch (error) {
       setAuthState((prev) => ({
         ...prev,

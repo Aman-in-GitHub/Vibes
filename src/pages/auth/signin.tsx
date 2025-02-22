@@ -6,124 +6,192 @@ import { Link, Navigate } from 'react-router';
 import { toast } from 'sonner';
 import useAuth from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
-import Loading from '@/components/Loading';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { PasswordInput } from '@/components/ui/password-input';
+import { PiSpinner as Spinner } from 'react-icons/pi';
+import { REGEXP_ONLY_DIGITS } from 'input-otp';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot
+} from '@/components/ui/input-otp';
 
 const SignInSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
+  email: z.string().min(1, 'Email is required').email('Enter a valid email')
 });
 
 type SignInFormData = z.infer<typeof SignInSchema>;
 
 function SignIn() {
-  const [error, setError] = useState<string>('');
+  const [otp, setOtp] = useState('');
+  const [screen, setScreen] = useState<'otp' | 'signin'>('signin');
   const { isAuthenticated, isLoading } = useAuth();
-  const { register, handleSubmit, formState, reset } = useForm<SignInFormData>({
-    resolver: zodResolver(SignInSchema),
-    defaultValues: {
-      email: '',
-      password: ''
-    }
-  });
+  const { register, handleSubmit, getValues, formState, reset } =
+    useForm<SignInFormData>({
+      resolver: zodResolver(SignInSchema),
+      defaultValues: {
+        email: ''
+      }
+    });
 
   if (isLoading) {
-    return <Loading />;
+    return null;
   }
 
   if (isAuthenticated) {
-    toast.warning('You’re already logged in. Redirecting your feed');
+    if (screen !== 'otp') {
+      toast.warning('You’re already logged in. Redirecting to your feed');
+    }
     return <Navigate to="/" replace={true} />;
   }
 
   async function onSignIn(data: SignInFormData) {
-    setError('');
-
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password
+      const { data: emailExists, error } = await supabase.rpc(
+        'does_email_exist',
+        { email: data.email }
+      );
+
+      if (!emailExists) {
+        toast.error('User with this email does not exist');
+        return;
+      }
+
+      if (error) {
+        throw error;
+      }
+      const { error: OtpError } = await supabase.auth.signInWithOtp({
+        email: data.email
+      });
+
+      if (OtpError) {
+        throw OtpError;
+      }
+
+      setScreen('otp');
+    } catch (error) {
+      console.error('Signin Error:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Something went wrong'
+      );
+    }
+  }
+
+  async function verifyOTP(OTP: string) {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: getValues('email'),
+        token: OTP,
+        type: 'magiclink'
       });
 
       if (error) {
         throw error;
       }
 
-      reset();
-    } catch (error) {
-      console.error(error);
-      setError(error instanceof Error ? error.message : 'Something went wrong');
-    }
-  }
+      toast.success('OTP verified successfully');
 
-  if (error) {
-    toast.error(error);
+      reset();
+      setOtp('');
+
+      return <Navigate to="/" replace={true} />;
+    } catch (error) {
+      console.error(
+        'OTP Verification Error:',
+        error instanceof Error ? error.message : 'Something went wrong'
+      );
+      toast.error(
+        error instanceof Error ? error.message : 'Something went wrong'
+      );
+      setScreen('signin');
+      setOtp('');
+      return;
+    }
   }
 
   return (
     <main className="motion-blur-in motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
-      <h1 className="mb-4 text-7xl font-bold">Log in to your account</h1>
+      {screen === 'signin' ? (
+        <>
+          <h1 className="mb-4 text-7xl font-bold">Log in to your account</h1>
 
-      <form onSubmit={handleSubmit(onSignIn)} className="space-y-2">
-        <div>
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            {...register('email')}
-            type="email"
-            className={
-              formState.errors.email
-                ? 'ring ring-red-500 focus-visible:ring-red-500'
-                : ''
-            }
-          />
-          {formState.errors.email && (
-            <p className="mt-1 text-xs font-semibold text-red-500">
-              {formState.errors.email.message}
-            </p>
-          )}
-        </div>
+          <form onSubmit={handleSubmit(onSignIn)} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email address</Label>
+              <Input
+                {...register('email')}
+                type="email"
+                className={
+                  formState.errors.email
+                    ? 'ring ring-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
+              />
+              {formState.errors.email && (
+                <p className="mt-1 text-xs font-semibold text-red-500">
+                  {formState.errors.email.message}
+                </p>
+              )}
+            </div>
 
-        <div>
-          <Label htmlFor="password">Password</Label>
-          <PasswordInput
-            {...register('password')}
-            className={
-              formState.errors.password
-                ? 'ring ring-red-500 focus-visible:ring-red-500'
-                : ''
-            }
-          />
-          {formState.errors.password && (
-            <p className="mt-1 text-xs font-semibold text-red-500">
-              {formState.errors.password.message}
-            </p>
-          )}
-        </div>
+            <div>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-xs bg-rose-600 py-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={formState.isSubmitting}
+              >
+                {formState.isSubmitting && <Spinner className="animate-spin" />}
 
-        <div className="pt-4">
+                {formState.isSubmitting ? 'Sending you an OTP' : 'Continue'}
+              </button>
+            </div>
+
+            <div>
+              <p className="text-sm">
+                Don't have an account?{' '}
+                <Link
+                  to="/auth/create-account"
+                  className="whitespace-nowrap underline underline-offset-2"
+                >
+                  Create a new account
+                </Link>
+              </p>
+            </div>
+          </form>
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center">
+          <h1 className="mb-12 text-7xl font-bold">Verify your OTP</h1>
+
+          <InputOTP
+            maxLength={6}
+            pattern={REGEXP_ONLY_DIGITS}
+            value={otp}
+            onChange={(value) => setOtp(value)}
+          >
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+            </InputOTPGroup>
+            <InputOTPSeparator />
+            <InputOTPGroup>
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+
           <button
             type="submit"
-            className="w-full rounded-xs bg-green-600 py-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={formState.isSubmitting}
+            onClick={() => verifyOTP(otp)}
+            className="mt-12 flex w-full items-center justify-center gap-2 rounded-xs bg-blue-600 py-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Sign in
+            Create your account
           </button>
         </div>
-
-        <div className="pt-2">
-          <p className="text-sm">
-            Don't have an account?{' '}
-            <Link
-              to="/auth/create-account"
-              className="whitespace-nowrap underline underline-offset-2"
-            >
-              Create a new account
-            </Link>
-          </p>
-        </div>
-      </form>
+      )}
     </main>
   );
 }

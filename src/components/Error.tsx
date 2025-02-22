@@ -4,7 +4,7 @@ function Error({ error, reset }: { error: Error; reset: () => void }) {
       <img
         src="/logo.svg"
         alt="Vibes"
-        className="motion-preset-spin motion-duration-1000 size-52 select-none lg:size-96"
+        className="motion-preset-spin motion-duration-1000 size-40 select-none lg:size-52"
       />
 
       <div className="mt-10 text-center text-red-500">
