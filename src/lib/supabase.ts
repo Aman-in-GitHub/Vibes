@@ -20,4 +20,4 @@ try {
   throw new Error(`Supabase client initialization failed: ${error}`);
 }
 
-export default supabase;
+export { supabase };

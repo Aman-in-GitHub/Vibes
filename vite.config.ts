@@ -18,10 +18,10 @@ export default defineConfig({
         'pwa-64x64.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
-        'fonts/Inter.woff2',
+        'fonts/Geist.woff2',
         'fonts/Lora.woff2',
-        'fonts/GeneralSans.woff2',
-        'fonts/Creepster.woff2'
+        'fonts/Creepster.woff2',
+        'fonts/Quintessential.woff2'
       ],
       strategies: 'generateSW',
       workbox: {

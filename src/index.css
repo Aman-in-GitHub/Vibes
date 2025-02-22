@@ -21,12 +21,12 @@ button {
   all: revert;
 }
 
-/* Inter */
+/* Geist */
 @font-face {
   font-display: swap;
-  font-family: 'Inter';
+  font-family: 'Geist';
   font-style: normal;
-  src: url('/fonts/Inter.woff2') format('woff2');
+  src: url('/fonts/Geist.woff2') format('woff2');
 }
 
 /* Lora */
@@ -45,19 +45,19 @@ button {
   src: url('/fonts/Creepster.woff2') format('woff2');
 }
 
-/* GeneralSans */
+/* Quintessential */
 @font-face {
   font-display: swap;
-  font-family: 'GeneralSans';
+  font-family: 'Quintessential';
   font-style: normal;
-  src: url('/fonts/GeneralSans.woff2') format('woff2');
+  src: url('/fonts/Quintessential.woff2') format('woff2');
 }
 
 @theme {
-  --font-inter: Inter, sans-serif;
+  --font-geist: Geist, sans-serif;
   --font-lora: Lora, serif;
-  --font-general: GeneralSans, serif;
   --font-horror: Creepster, cursive;
+  --font-nsfw: Quintessential, serif;
 }
 
 @custom-variant dark (&:is(.dark *));

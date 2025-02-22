@@ -6,20 +6,26 @@ import {
   PiShareFat as Share,
   PiPlay as Play,
   PiBookmarkSimple as BookmarkLine,
-  PiBookmarkSimpleFill as BookmarkFill
+  PiBookmarkSimpleFill as BookmarkFill,
+  PiHeart as Like
+  // PiHeartFill as LikeFill
 } from 'react-icons/pi';
 import Marquee from 'react-fast-marquee';
 import copy from 'copy-to-clipboard';
-import supabase from '@/lib/supabase';
-import { calculateReadingTime } from '@/utils';
+import { supabase } from '@/lib/supabase';
+import {
+  calculateReadingTime,
+  capitalizeFirstLetter,
+  getPostTypeStyles
+} from '@/utils';
 import { toast } from 'sonner';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
 
-const POSTS_PER_PAGE = 10;
+const POSTS_PER_PAGE = 8;
 const POSTS_BEFORE_FETCH = 4;
 const POST_TYPES = ['horror', 'nsfw'];
 
-type PostType = {
+export type PostType = {
   id: string;
   title: string;
   content: string;
@@ -137,7 +143,7 @@ export default function Feed() {
     if (navigator.share) {
       navigator.share({
         title: post.title,
-        text: `${post.title.charAt(0).toUpperCase() + post.title.slice(1)} - Vibes`,
+        text: `${capitalizeFirstLetter(post.title)} - Vibes`,
         url: url
       });
     } else {
@@ -207,13 +213,10 @@ export default function Feed() {
       }}
     >
       {posts.map((post) => {
-        const font =
-          post.type === 'horror' ? 'font-horror' : 'font-inter font-black';
-        const textColor =
-          post.type === 'horror' ? 'text-red-500' : 'text-blue-500';
-        const backgroundColor =
-          post.type === 'horror' ? 'bg-red-950' : 'bg-blue-950';
-        const title = post.title.charAt(0).toUpperCase() + post.title.slice(1);
+        const { font, textColor, backgroundColor } = getPostTypeStyles(
+          post.type
+        );
+        const title = capitalizeFirstLetter(post.title);
         const isBookmarked = bookmarks.some((item) => item.id === post.id);
 
         return (
@@ -287,12 +290,20 @@ export default function Feed() {
                 )}
               </button>
 
-              <button
-                onClick={() => handleReadMore(post)}
-                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
-              >
-                <Play className={`text-4xl ${textColor}`} />
-              </button>
+              {post.content.length > 500 ? (
+                <button
+                  onClick={() => handleReadMore(post)}
+                  className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
+                >
+                  <Play className={`text-4xl ${textColor}`} />
+                </button>
+              ) : (
+                <button
+                  className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
+                >
+                  <Like className={`text-4xl ${textColor}`} />
+                </button>
+              )}
             </div>
           </section>
         );
