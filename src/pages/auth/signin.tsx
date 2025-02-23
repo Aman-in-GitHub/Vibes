@@ -16,6 +16,7 @@ import {
   InputOTPSeparator,
   InputOTPSlot
 } from '@/components/ui/input-otp';
+import { db } from '@/lib/dexie';
 
 const SignInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email')
@@ -92,15 +93,33 @@ function SignIn() {
 
       toast.success('OTP verified successfully');
 
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', getValues('email'));
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      const user = data[0];
+
+      await db.users.put({
+        id: user.auth_id,
+        name: user.name,
+        email: user.email,
+        age: user.age,
+        sex: user.sex,
+        isNsfw: user.isNsfw,
+        isSynced: true
+      });
+
       reset();
       setOtp('');
 
       return <Navigate to="/" replace={true} />;
     } catch (error) {
-      console.error(
-        'OTP Verification Error:',
-        error instanceof Error ? error.message : 'Something went wrong'
-      );
+      console.error('OTP Verification Error:', error);
       toast.error(
         error instanceof Error ? error.message : 'Something went wrong'
       );

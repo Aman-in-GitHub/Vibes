@@ -3,6 +3,7 @@ import { AuthError, Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { db } from '@/lib/dexie';
 
 export interface AuthState {
   user: User | null;
@@ -32,6 +33,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     toast.warning('Signing out of Vibes');
+
+    await db.users.clear();
+    await db.likes.clear();
+    await db.bookmarks.clear();
 
     try {
       await supabase.auth.signOut();

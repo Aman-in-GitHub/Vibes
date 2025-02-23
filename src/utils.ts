@@ -1,3 +1,5 @@
+import { db, UserType } from '@/lib/dexie';
+
 export function calculateReadingTime(
   text: string,
   wordsPerMinute: number = 200
@@ -48,5 +50,16 @@ export function getPostTypeStyles(type: string) {
         decorationColor: 'decoration-green-500',
         gradientColor: 'from-green-500 to-green-600'
       };
+  }
+}
+
+export async function getCurrentUser(): Promise<UserType | null> {
+  try {
+    const users = await db.users.toArray();
+
+    return users.length > 0 ? users[0] : null;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
   }
 }

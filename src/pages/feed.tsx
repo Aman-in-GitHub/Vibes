@@ -7,20 +7,24 @@ import {
   PiPlay as Play,
   PiBookmarkSimple as BookmarkLine,
   PiBookmarkSimpleFill as BookmarkFill,
-  PiHeart as Like
-  // PiHeartFill as LikeFill
+  PiHeart as Like,
+  PiHeartFill as LikeFill
 } from 'react-icons/pi';
+import { v4 as uuidv4 } from 'uuid';
 import Marquee from 'react-fast-marquee';
 import copy from 'copy-to-clipboard';
 import { supabase } from '@/lib/supabase';
 import {
   calculateReadingTime,
   capitalizeFirstLetter,
+  getCurrentUser,
   getPostTypeStyles
 } from '@/utils';
 import { toast } from 'sonner';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
 import Loader from '@/components/Loader';
+import { db } from '@/lib/dexie';
 
 const POSTS_PER_PAGE = 8;
 const POSTS_BEFORE_FETCH = 4;
@@ -59,13 +63,145 @@ async function fetchPosts({ pageParam = 0 }): Promise<PostType[]> {
   return data || [];
 }
 
+async function handleBookmark(post: PostType) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      toast.error('You must be logged in save vibes');
+      return;
+    }
+
+    const existingBookmark = await db.bookmarks
+      .where({
+        userId: user.id,
+        postId: post.id
+      })
+      .first();
+
+    if (existingBookmark) {
+      await db.bookmarks.delete(existingBookmark.id);
+      await supabase.from('bookmarks').delete().eq('id', existingBookmark.id);
+      toast.warning('Deleted vibe from your bookmarks');
+      return;
+    }
+
+    const id = await db.bookmarks.add({
+      id: uuidv4(),
+      userId: user.id,
+      postId: post.id,
+      createdAt: new Date().toISOString(),
+      isSynced: false
+    });
+
+    toast.success('Saved vibe to your bookmarks');
+
+    const { error } = await supabase.from('bookmarks').insert({
+      id: id,
+      user_id: user.id,
+      post_id: post.id,
+      added_at: new Date().toISOString()
+    });
+
+    if (error) {
+      throw error;
+    } else {
+      await db.bookmarks.update(id, {
+        isSynced: true
+      });
+    }
+  } catch (error) {
+    console.error('Error handling bookmark:', error);
+    toast.error('Error saving vibe to your bookmarks');
+  }
+}
+
+async function handleLike(post: PostType) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      toast.error('You must be logged in like a vibe');
+      return;
+    }
+
+    const existingLike = await db.likes
+      .where({
+        userId: user.id,
+        postId: post.id
+      })
+      .first();
+
+    if (existingLike) {
+      await db.likes.delete(existingLike.id);
+      await supabase.from('likes').delete().eq('id', existingLike.id);
+      return;
+    }
+
+    const id = await db.likes.add({
+      id: uuidv4(),
+      userId: user.id,
+      postId: post.id,
+      createdAt: new Date().toISOString(),
+      isSynced: false
+    });
+
+    const { error } = await supabase.from('likes').insert({
+      id: id,
+      user_id: user.id,
+      post_id: post.id,
+      added_at: new Date().toISOString()
+    });
+
+    if (error) {
+      throw error;
+    } else {
+      await db.likes.update(id, {
+        isSynced: true
+      });
+    }
+  } catch (error) {
+    console.error('Error handling like:', error);
+  }
+}
+
 export default function Feed() {
   const currentPostIndex = useRef(0);
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
-  const [bookmarks, setBookmarks] = useState<PostType[]>([]);
+  const userId = useLiveQuery(async () => {
+    const user = await getCurrentUser();
+    return user?.id;
+  }, []);
+
+  const bookmarkedPosts = useLiveQuery(
+    async () => {
+      if (!userId) return new Set<string>();
+
+      const bookmarks = await db.bookmarks
+        .where('userId')
+        .equals(userId)
+        .toArray();
+
+      return new Set(bookmarks.map((b) => b.postId));
+    },
+    [userId],
+    new Set<string>()
+  );
+
+  const likedPosts = useLiveQuery(
+    async () => {
+      if (!userId) return new Set<string>();
+
+      const likes = await db.likes.where('userId').equals(userId).toArray();
+
+      return new Set(likes.map((l) => l.postId));
+    },
+    [userId],
+    new Set<string>()
+  );
 
   useEffect(() => {
     const navigationState = sessionStorage.getItem(
@@ -153,20 +289,6 @@ export default function Feed() {
     }
   }
 
-  async function handleBookmark(post: PostType) {
-    setBookmarks((prevBookmarks) => {
-      const isBookmarked = prevBookmarks.some((item) => item.id === post.id);
-
-      if (isBookmarked) {
-        toast.warning('Vibe removed from your bookmarks');
-        return prevBookmarks.filter((item) => item.id !== post.id);
-      } else {
-        toast.success('Vibe saved to your bookmarks');
-        return [...prevBookmarks, post];
-      }
-    });
-  }
-
   function handleReadMore(post: PostType) {
     if (mainRef.current) {
       const navigationState = {
@@ -214,7 +336,8 @@ export default function Feed() {
           post.type
         );
         const title = capitalizeFirstLetter(post.title);
-        const isBookmarked = bookmarks.some((item) => item.id === post.id);
+        const isBookmarked = bookmarkedPosts?.has(post.id) ?? false;
+        const isLiked = likedPosts?.has(post.id) ?? false;
 
         return (
           <section
@@ -296,9 +419,14 @@ export default function Feed() {
                 </button>
               ) : (
                 <button
+                  onClick={() => handleLike(post)}
                   className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
                 >
-                  <Like className={`text-4xl ${textColor}`} />
+                  {isLiked ? (
+                    <LikeFill className={`text-4xl ${textColor}`} />
+                  ) : (
+                    <Like className={`text-4xl ${textColor}`} />
+                  )}
                 </button>
               )}
             </div>

@@ -17,6 +17,7 @@ import {
   InputOTPSeparator,
   InputOTPSlot
 } from '@/components/ui/input-otp';
+import { db } from '@/lib/dexie';
 
 const SignUpSchema = z.object({
   email: z
@@ -108,13 +109,16 @@ function SignUp() {
 
       if (error) throw error;
 
-      const { error: seedError } = await supabase.from('profiles').insert({
-        email: getValues('email'),
-        name: getValues('name'),
-        age: getValues('age'),
-        sex: getValues('sex').toLowerCase(),
-        isNsfw: getValues('isNsfw')
-      });
+      const { data, error: seedError } = await supabase
+        .from('profiles')
+        .insert({
+          email: getValues('email'),
+          name: getValues('name'),
+          age: getValues('age'),
+          sex: getValues('sex').toLowerCase(),
+          isNsfw: getValues('isNsfw')
+        })
+        .select('auth_id');
 
       if (seedError) {
         throw seedError;
@@ -122,14 +126,21 @@ function SignUp() {
 
       toast.success('Welcome to Vibes');
 
+      await db.users.put({
+        id: data[0].auth_id,
+        name: getValues('name'),
+        email: getValues('email'),
+        age: getValues('age'),
+        sex: getValues('sex').toLowerCase() as 'male' | 'female',
+        isNsfw: getValues('isNsfw') || false,
+        isSynced: true
+      });
+
       reset();
       setOtp('');
       return <Navigate to="/" replace={true} />;
     } catch (error) {
-      console.error(
-        'OTP Verification Error:',
-        error instanceof Error ? error.message : 'Something went wrong'
-      );
+      console.error('OTP Verification Error:', error);
       toast.error(
         error instanceof Error ? error.message : 'Something went wrong'
       );
@@ -271,10 +282,9 @@ function SignUp() {
                     />
                   )}
                 />
-                <Label
-                  htmlFor="terms"
-                  className="leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
+
+                {/* TODO: Add terms and conditions dialog */}
+                <Label className="leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                   I have read and agree to the{' '}
                   <span className="text-blue-600 underline underline-offset-2">
                     terms and conditions

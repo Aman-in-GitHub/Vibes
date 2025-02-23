@@ -5,6 +5,7 @@
     "dexie",
     "sonner",
     "supabase",
+    "uuidv",
     "vite"
   ]
 }

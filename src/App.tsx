@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import AuthProvider from '@/context/AuthContext';
 import SignIn from '@/pages/auth/signin';
 import SignUp from '@/pages/auth/signup';
+import Index from '@/pages';
 import Feed from '@/pages/feed';
 import Vibe from '@/pages/vibe';
 import NotFound from '@/pages/not-found';
@@ -38,7 +39,8 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route index element={<Feed />} />
+          <Route index element={<Index />} />
+          <Route path="/feed" element={<Feed />} />
           <Route path="/vibe/:id" element={<Vibe />} />
 
           {/* Authentication redirects */}

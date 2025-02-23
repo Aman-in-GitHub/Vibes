@@ -1,33 +1,41 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { PostType } from '@/pages/feed';
-
-export type ExtendedPostType = PostType & {
-  isAuthenticated: boolean;
-  isSynced: boolean;
-  progress: number;
-  isLiked: boolean;
-  isBookmarked: boolean;
-};
 
 export type UserType = {
   id: string;
   name: string;
+  email: string;
   age: number;
-  nsfw: boolean;
+  sex: 'male' | 'female';
+  isNsfw: boolean;
   isSynced: boolean;
-  likedPosts: string[];
-  bookmarkedPosts: string[];
+};
+
+export type BookmarkType = {
+  id: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+  isSynced: boolean;
+};
+
+export type LikeType = {
+  id: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+  isSynced: boolean;
 };
 
 const db = new Dexie('VibesDatabase') as Dexie & {
-  posts: EntityTable<ExtendedPostType, 'id'>;
   users: EntityTable<UserType, 'id'>;
+  likes: EntityTable<LikeType, 'id'>;
+  bookmarks: EntityTable<BookmarkType, 'id'>;
 };
 
 db.version(1).stores({
-  posts:
-    'id, title, content, preview, url, type, author, platform, created_at, scraped_at, tags, isAuthenticated, isSynced, progress, isLiked, isBookmarked',
-  users: 'id, name, age, nsfw, likedPosts, bookmarkedPosts'
+  users: 'id, name, email, age, sex, nsfw, isSynced',
+  likes: 'id, userId, postId, createdAt, isSynced',
+  bookmarks: 'id, userId, postId, createdAt, isAuthenticated, isSynced'
 });
 
 export { db };
