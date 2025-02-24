@@ -151,7 +151,7 @@ function SignUp() {
   }
 
   return (
-    <main className="motion-blur-in motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
+    <main className="motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
       {screen === 'signup' ? (
         <>
           <h1 className="mb-4 text-7xl font-bold">Create a new account</h1>

@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 
 function NotFound() {
   return (
-    <main className="bg-background motion-blur-in motion-opacity-in motion-duration-[2s] flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-hidden lg:gap-20">
+    <main className="bg-background motion-opacity-in motion-duration-[2s] flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-hidden lg:gap-20">
       <img
         src="/logo.svg"
         alt="Vibes"

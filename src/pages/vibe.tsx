@@ -2,19 +2,55 @@ import { useLocation } from 'react-router';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ScrollProgress } from '@/components/ScrollProgress';
-import { getPostTypeStyles } from '@/utils';
+import { getCurrentUser, getPostTypeStyles } from '@/utils';
 import {
-  PiHeart as Like,
-  // PiHeartFill as LikeFill,
+  PiHeart as LikeLine,
+  PiHeartFill as LikeFill,
   PiBookmarkSimple as BookmarkLine,
-  // PiBookmarkSimpleFill as BookmarkFill,
+  PiBookmarkSimpleFill as BookmarkFill,
   PiPen as Author
 } from 'react-icons/pi';
-import { PostType } from '@/pages/feed';
+import { handleBookmark, handleLike, PostType } from '@/components/Posts';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/dexie';
 
 export default function Vibe() {
   const location = useLocation();
   const post: PostType = location.state.post;
+
+  const userId = useLiveQuery(async () => {
+    const user = await getCurrentUser();
+
+    return user?.id;
+  }, []);
+
+  const bookmarkedPosts = useLiveQuery(
+    async () => {
+      if (!userId) return new Set<string>();
+
+      const bookmarks = await db.bookmarks
+        .where('userId')
+        .equals(userId)
+        .toArray();
+
+      return new Set(bookmarks.map((b) => b.postId));
+    },
+    [userId],
+    new Set<string>()
+  );
+
+  const likedPosts = useLiveQuery(
+    async () => {
+      if (!userId) return new Set<string>();
+
+      const likes = await db.likes.where('userId').equals(userId).toArray();
+
+      return new Set(likes.map((l) => l.postId));
+    },
+    [userId],
+    new Set<string>()
+  );
+
   const {
     font,
     textColor,
@@ -23,6 +59,9 @@ export default function Vibe() {
     decorationColor,
     gradientColor
   } = getPostTypeStyles(post.type);
+
+  const isBookmarked = bookmarkedPosts?.has(post.id) ?? false;
+  const isLiked = likedPosts?.has(post.id) ?? false;
 
   return (
     <main className="relative">
@@ -128,7 +167,7 @@ export default function Vibe() {
           href={post.url}
           target="_blank"
           rel="noreferrer"
-          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-4 py-2 ${borderColor} duration-300 active:scale-90`}
+          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90`}
         >
           <img
             src={`/sources/${post.platform}.png`}
@@ -138,16 +177,30 @@ export default function Vibe() {
           <span className="flex items-center gap-2">Source</span>
         </a>
         <button
-          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-4 py-2 ${borderColor} duration-300 active:scale-90`}
+          onClick={() => handleBookmark(post)}
+          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90`}
         >
-          <BookmarkLine className="text-xl" />
-          <span className="flex items-center gap-2">Save</span>
+          {isBookmarked ? (
+            <BookmarkFill className="text-xl" />
+          ) : (
+            <BookmarkLine className="text-xl" />
+          )}
+          <span className="flex items-center gap-2">
+            {isBookmarked ? 'Saved' : 'Save'}
+          </span>
         </button>
         <button
-          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-4 py-2 ${borderColor} duration-300 active:scale-90`}
+          onClick={() => handleLike(post)}
+          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90`}
         >
-          <Like className="text-xl" />
-          <span className="flex items-center gap-2">Like</span>
+          {isLiked ? (
+            <LikeFill className="text-xl" />
+          ) : (
+            <LikeLine className="text-xl" />
+          )}
+          <span className="flex items-center gap-2">
+            {isLiked ? 'Liked' : 'Like'}
+          </span>
         </button>
       </div>
     </main>

@@ -1,6 +1,6 @@
 function Error({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <section className="bg-background motion-blur-in motion-opacity-in motion-duration-[2s] flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-hidden lg:gap-20">
+    <section className="bg-background motion-opacity-in motion-duration-[2s] flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-hidden lg:gap-20">
       <img
         src="/logo.svg"
         alt="Vibes"

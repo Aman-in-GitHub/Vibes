@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { PostType } from '@/components/Posts';
 
 export type UserType = {
   id: string;
@@ -14,6 +15,7 @@ export type BookmarkType = {
   id: string;
   userId: string;
   postId: string;
+  vibe: PostType;
   createdAt: string;
   isSynced: boolean;
 };
@@ -22,6 +24,7 @@ export type LikeType = {
   id: string;
   userId: string;
   postId: string;
+  vibe: PostType;
   createdAt: string;
   isSynced: boolean;
 };
@@ -34,8 +37,8 @@ const db = new Dexie('VibesDatabase') as Dexie & {
 
 db.version(1).stores({
   users: 'id, name, email, age, sex, nsfw, isSynced',
-  likes: 'id, userId, postId, createdAt, isSynced',
-  bookmarks: 'id, userId, postId, createdAt, isAuthenticated, isSynced'
+  likes: 'id, userId, postId, vibe, createdAt, isSynced',
+  bookmarks: 'id, userId, postId, vibe, createdAt, isAuthenticated, isSynced'
 });
 
 export { db };

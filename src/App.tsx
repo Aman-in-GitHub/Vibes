@@ -5,6 +5,8 @@ import SignUp from '@/pages/auth/signup';
 import Index from '@/pages';
 import Feed from '@/pages/feed';
 import Vibe from '@/pages/vibe';
+import Bookmarks from '@/pages/bookmark';
+import Likes from '@/pages/like';
 import NotFound from '@/pages/not-found';
 
 function App() {
@@ -32,6 +34,18 @@ function App() {
         '/auth/register'
       ],
       to: '/auth/create-account'
+    },
+    {
+      from: ['/foryou', '/for-you'],
+      to: '/feed'
+    },
+    {
+      from: ['/bookmark', '/saved'],
+      to: '/bookmarks'
+    },
+    {
+      from: ['/liked', '/like'],
+      to: '/likes'
     }
   ];
 
@@ -41,6 +55,8 @@ function App() {
         <Routes>
           <Route index element={<Index />} />
           <Route path="/feed" element={<Feed />} />
+          <Route path="/bookmarks" element={<Bookmarks />} />
+          <Route path="/likes" element={<Likes />} />
           <Route path="/vibe/:id" element={<Vibe />} />
 
           {/* Authentication redirects */}
