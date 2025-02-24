@@ -223,21 +223,41 @@ export default function Posts({
     const navigationState = sessionStorage.getItem(
       'vibe-state-navigation-state'
     );
-    if (navigationState) {
-      const { scrollPosition, fromUrl } = JSON.parse(navigationState);
-      if (location.pathname === fromUrl) {
-        setIsNavigatingBack(true);
-        if (mainRef.current) {
-          mainRef.current.style.scrollBehavior = 'auto';
-          mainRef.current.scrollTop = scrollPosition;
-          sessionStorage.removeItem('vibe-state-navigation-state');
-          setTimeout(() => {
-            if (mainRef.current) {
-              mainRef.current.style.scrollBehavior = 'smooth';
-            }
-          }, 100);
+    if (type === 'feed') {
+      if (navigationState) {
+        const { scrollPosition, fromUrl } = JSON.parse(navigationState);
+        if (location.pathname === fromUrl) {
+          setIsNavigatingBack(true);
+          if (mainRef.current) {
+            mainRef.current.style.scrollBehavior = 'auto';
+            mainRef.current.scrollTop = scrollPosition;
+            sessionStorage.removeItem('vibe-state-navigation-state');
+            setTimeout(() => {
+              if (mainRef.current) {
+                mainRef.current.style.scrollBehavior = 'smooth';
+              }
+            }, 100);
+          }
         }
       }
+    } else {
+      setTimeout(() => {
+        if (navigationState) {
+          const { scrollPosition, fromUrl } = JSON.parse(navigationState);
+          if (location.pathname === fromUrl) {
+            setIsNavigatingBack(true);
+            if (mainRef.current) {
+              mainRef.current.scrollTop = scrollPosition;
+              sessionStorage.removeItem('vibe-state-navigation-state');
+              setTimeout(() => {
+                if (mainRef.current) {
+                  mainRef.current.style.scrollBehavior = 'smooth';
+                }
+              }, 100);
+            }
+          }
+        }
+      }, 250);
     }
   }, [location.pathname]);
 
@@ -495,7 +515,7 @@ export default function Posts({
                 onClick={() =>
                   handleShare(
                     post,
-                    `https://thevibes.pages.dev/vibe/${post.id}`
+                    `${import.meta.env.DEV ? 'http://localhost:5173' : 'https://thevibes.pages.dev'}/vibe/${post.id}`
                   )
                 }
                 className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}

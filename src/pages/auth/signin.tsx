@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router';
 import { toast } from 'sonner';
 import useAuth from '@/hooks/useAuth';
@@ -39,6 +39,10 @@ function SignIn() {
   if (isLoading) {
     return null;
   }
+
+  useEffect(() => {
+    document.title = 'Signin - Vibes';
+  }, []);
 
   if (isAuthenticated) {
     if (screen !== 'otp') {

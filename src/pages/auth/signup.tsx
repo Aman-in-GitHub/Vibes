@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router';
 import { toast } from 'sonner';
 import useAuth from '@/hooks/useAuth';
@@ -58,7 +58,13 @@ function SignUp() {
     }
   });
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return null;
+  }
+
+  useEffect(() => {
+    document.title = 'Signup - Vibes';
+  }, []);
 
   if (isAuthenticated) {
     if (!isSubmitSuccessful) {

@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router';
+import { useLocation, useParams } from 'react-router';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ScrollProgress } from '@/components/ScrollProgress';
@@ -13,10 +13,42 @@ import {
 import { handleBookmark, handleLike, PostType } from '@/components/Posts';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/dexie';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import Loader from '@/components/Loader';
+import { toast } from 'sonner';
 
 export default function Vibe() {
   const location = useLocation();
-  const post: PostType = location.state.post;
+  const { id } = useParams();
+  const [post, setPost] = useState<PostType>(location.state?.post ?? null);
+
+  useEffect(() => {
+    async function fetchPost() {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        toast.error("Couldn't find the vibe you're looking for");
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setPost(data);
+    }
+
+    if (!post) {
+      fetchPost();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!post) return;
+    document.title = `${post.title}`;
+  }, [post]);
 
   const userId = useLiveQuery(async () => {
     const user = await getCurrentUser();
@@ -50,6 +82,14 @@ export default function Vibe() {
     [userId],
     new Set<string>()
   );
+
+  if (!post) {
+    return (
+      <div className="motion-preset-slide-right motion-preset-blur-right flex h-screen flex-col items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   const {
     font,
