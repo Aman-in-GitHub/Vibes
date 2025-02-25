@@ -3,10 +3,12 @@ import App from './App';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/sonner';
-import Error from '@/components/Error';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { toast } from 'sonner';
+import { BrowserRouter } from 'react-router';
+import AuthProvider from '@/context/AuthContext';
+import { Toaster } from '@/components/ui/sonner';
+import Error from '@/components/Error';
 
 function PWAUpdater() {
   useRegisterSW({
@@ -42,9 +44,13 @@ createRoot(document.getElementById('root')!).render(
     )}
   >
     <QueryClientProvider client={queryClient}>
-      <PWAUpdater />
-      <App />
-      <Toaster richColors={true} position="top-center" />
+      <BrowserRouter>
+        <AuthProvider>
+          <PWAUpdater />
+          <App />
+          <Toaster richColors={true} position="top-center" />
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   </ErrorBoundary>
 );
