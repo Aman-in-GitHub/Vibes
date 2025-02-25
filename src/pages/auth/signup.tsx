@@ -58,13 +58,13 @@ function SignUp() {
     }
   });
 
-  if (isLoading) {
-    return null;
-  }
-
   useEffect(() => {
     document.title = 'Signup - Vibes';
   }, []);
+
+  if (isLoading) {
+    return null;
+  }
 
   if (isAuthenticated) {
     if (!isSubmitSuccessful) {
@@ -132,14 +132,17 @@ function SignUp() {
 
       toast.success('Welcome to Vibes');
 
+      await db.users.clear();
+      await db.likes.clear();
+      await db.bookmarks.clear();
+
       await db.users.put({
         id: data[0].auth_id,
         name: getValues('name'),
         email: getValues('email'),
         age: getValues('age'),
         sex: getValues('sex').toLowerCase() as 'male' | 'female',
-        isNsfw: getValues('isNsfw') || false,
-        isSynced: true
+        isNsfw: getValues('isNsfw') || false
       });
 
       reset();

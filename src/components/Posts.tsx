@@ -26,6 +26,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
 import Loader from '@/components/Loader';
 import { db } from '@/lib/dexie';
+import { useIsOnline } from '@/hooks/useIsOnline';
 
 const POSTS_PER_PAGE = 8;
 const POSTS_BEFORE_FETCH = 4;
@@ -62,22 +63,13 @@ export async function handleBookmark(post: PostType) {
       .first();
 
     if (existingBookmark) {
-      await db.bookmarks.delete(existingBookmark.id);
       await supabase.from('bookmarks').delete().eq('id', existingBookmark.id);
+      await db.bookmarks.delete(existingBookmark.id);
       toast.warning('Deleted vibe from your bookmarks');
       return;
     }
 
-    const id = await db.bookmarks.add({
-      id: uuidv4(),
-      userId: user.id,
-      postId: post.id,
-      vibe: post,
-      createdAt: new Date().toISOString(),
-      isSynced: false
-    });
-
-    toast.success('Saved vibe to your bookmarks');
+    const id = uuidv4();
 
     const { error } = await supabase.from('bookmarks').insert({
       id: id,
@@ -88,14 +80,20 @@ export async function handleBookmark(post: PostType) {
 
     if (error) {
       throw error;
-    } else {
-      await db.bookmarks.update(id, {
-        isSynced: true
-      });
     }
+
+    await db.bookmarks.put({
+      id: uuidv4(),
+      userId: user.id,
+      postId: post.id,
+      vibe: post,
+      createdAt: new Date().toISOString()
+    });
+
+    toast.success('Saved vibe to your bookmarks');
   } catch (error) {
-    console.error('Error handling bookmark:', error);
-    toast.error('Error saving vibe to your bookmarks');
+    console.error('Error handling a bookmark:', error);
+    toast.error('Something went wrong while saving your vibe');
   }
 }
 
@@ -116,19 +114,12 @@ export async function handleLike(post: PostType) {
       .first();
 
     if (existingLike) {
-      await db.likes.delete(existingLike.id);
       await supabase.from('likes').delete().eq('id', existingLike.id);
+      await db.likes.delete(existingLike.id);
       return;
     }
 
-    const id = await db.likes.add({
-      id: uuidv4(),
-      userId: user.id,
-      postId: post.id,
-      vibe: post,
-      createdAt: new Date().toISOString(),
-      isSynced: false
-    });
+    const id = uuidv4();
 
     const { error } = await supabase.from('likes').insert({
       id: id,
@@ -139,13 +130,18 @@ export async function handleLike(post: PostType) {
 
     if (error) {
       throw error;
-    } else {
-      await db.likes.update(id, {
-        isSynced: true
-      });
     }
+
+    await db.likes.put({
+      id: id,
+      userId: user.id,
+      postId: post.id,
+      vibe: post,
+      createdAt: new Date().toISOString()
+    });
   } catch (error) {
-    console.error('Error handling like:', error);
+    console.error('Error liking a vibe:', error);
+    toast.error('Something went wrong while liking the vibe');
   }
 }
 
@@ -155,6 +151,7 @@ export default function Posts({
   type: 'feed' | 'bookmark' | 'like';
 }) {
   const currentPostIndex = useRef(0);
+  const { isOffline } = useIsOnline();
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -273,7 +270,7 @@ export default function Posts({
     queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
     getNextPageParam: (_, allPages) => allPages.length,
     initialPageParam: 0,
-    enabled: type === 'feed'
+    enabled: type === 'feed' && !isOffline
   });
 
   useEffect(() => {
@@ -374,23 +371,39 @@ export default function Posts({
 
   if (isLoading) {
     return (
-      <div className="motion-preset-slide-right motion-preset-blur-right flex h-screen flex-col items-center justify-center">
+      <section className="motion-preset-slide-right motion-preset-blur-right flex h-[100dvh] flex-col items-center justify-center">
         <Loader />
-      </div>
+      </section>
     );
   }
 
   if (error && type === 'feed') {
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-red-950">
+      <section className="flex h-[100dvh] items-center justify-center bg-red-950">
         <h2 className="text-xl text-red-500">{JSON.stringify(error)}</h2>
-      </div>
+      </section>
+    );
+  }
+
+  if (isOffline && type === 'feed') {
+    return (
+      <section className="motion-opacity-in motion-duration-1000 flex h-[100dvh] flex-col items-center justify-center gap-4 px-4 text-center">
+        <h1 className="font-geist text-4xl font-bold">
+          You are currently offline.
+        </h1>
+        <button
+          className="font-lora underline-red-500 w-full text-center text-xl underline underline-offset-2"
+          onClick={() => navigate('/bookmarks')}
+        >
+          Go To Your Saved Vibes
+        </button>
+      </section>
     );
   }
 
   if (posts.length === 0) {
     return (
-      <main
+      <section
         ref={mainRef}
         className="motion-opacity-in motion-duration-1000 flex h-[100dvh] items-center justify-center"
       >
@@ -429,7 +442,7 @@ export default function Posts({
                 : 'The world is ending. Try again later'}
           </p>
         </div>
-      </main>
+      </section>
     );
   }
 
@@ -469,7 +482,7 @@ export default function Posts({
           <section
             key={post.id}
             onClick={() => handleDoubleTap(post)}
-            className="motion-opacity-in relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
+            className="motion-opacity-in motion-duration-1000 relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
           >
             <div className="-mt-8 px-4">
               <h2 className={`${font} text-5xl`}>
@@ -524,10 +537,11 @@ export default function Posts({
               </button>
 
               <button
+                disabled={isOffline}
                 onClick={() => {
                   handleBookmark(post);
                 }}
-                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
+                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
               >
                 {isBookmarked ? (
                   <BookmarkFill className={`text-4xl ${textColor}`} />
@@ -545,8 +559,9 @@ export default function Posts({
                 </button>
               ) : (
                 <button
+                  disabled={isOffline}
                   onClick={() => handleLike(post)}
-                  className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
+                  className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
                 >
                   {isLiked ? (
                     <LikeFill className={`text-4xl ${textColor}`} />

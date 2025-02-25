@@ -17,8 +17,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Loader from '@/components/Loader';
 import { toast } from 'sonner';
+import { useIsOnline } from '@/hooks/useIsOnline';
 
 export default function Vibe() {
+  const { isOffline } = useIsOnline();
   const location = useLocation();
   const { id } = useParams();
   const [post, setPost] = useState<PostType>(location.state?.post ?? null);
@@ -85,9 +87,9 @@ export default function Vibe() {
 
   if (!post) {
     return (
-      <div className="motion-preset-slide-right motion-preset-blur-right flex h-screen flex-col items-center justify-center">
+      <section className="motion-preset-slide-right motion-preset-blur-right flex h-[100dvh] flex-col items-center justify-center">
         <Loader />
-      </div>
+      </section>
     );
   }
 
@@ -217,8 +219,9 @@ export default function Vibe() {
           <span className="flex items-center gap-2">Source</span>
         </a>
         <button
+          disabled={isOffline}
           onClick={() => handleBookmark(post)}
-          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90`}
+          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
         >
           {isBookmarked ? (
             <BookmarkFill className="text-xl" />
@@ -230,8 +233,9 @@ export default function Vibe() {
           </span>
         </button>
         <button
+          disabled={isOffline}
           onClick={() => handleLike(post)}
-          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90`}
+          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
         >
           {isLiked ? (
             <LikeFill className="text-xl" />

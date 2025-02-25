@@ -8,7 +8,6 @@ export type UserType = {
   age: number;
   sex: 'male' | 'female';
   isNsfw: boolean;
-  isSynced: boolean;
 };
 
 export type BookmarkType = {
@@ -17,7 +16,6 @@ export type BookmarkType = {
   postId: string;
   vibe: PostType;
   createdAt: string;
-  isSynced: boolean;
 };
 
 export type LikeType = {
@@ -26,7 +24,6 @@ export type LikeType = {
   postId: string;
   vibe: PostType;
   createdAt: string;
-  isSynced: boolean;
 };
 
 const db = new Dexie('VibesDatabase') as Dexie & {
@@ -36,9 +33,9 @@ const db = new Dexie('VibesDatabase') as Dexie & {
 };
 
 db.version(1).stores({
-  users: 'id, name, email, age, sex, nsfw, isSynced',
-  likes: 'id, userId, postId, vibe, createdAt, isSynced',
-  bookmarks: 'id, userId, postId, vibe, createdAt, isAuthenticated, isSynced'
+  users: 'id, name, isNsfw',
+  likes: 'id, userId, postId',
+  bookmarks: 'id, userId, postId'
 });
 
 export { db };

@@ -8,8 +8,35 @@ import Vibe from '@/pages/vibe';
 import Bookmarks from '@/pages/bookmark';
 import Likes from '@/pages/like';
 import NotFound from '@/pages/not-found';
+import { useIsOnline } from '@/hooks/useIsOnline';
+import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 function App() {
+  const { isOffline, wasOffline } = useIsOnline();
+
+  useEffect(() => {
+    if (isOffline) {
+      toast.warning(
+        'You are currently offline. You can go to your bookmarks to enjoy saved vibes',
+        {
+          duration: 7500
+        }
+      );
+    }
+  }, [isOffline]);
+
+  useEffect(() => {
+    if (wasOffline && !isOffline) {
+      toast.success(
+        'You are back online. All the functionality of Vibes is restored',
+        {
+          duration: 7500
+        }
+      );
+    }
+  }, [wasOffline, isOffline]);
+
   const authRedirects = [
     {
       from: [

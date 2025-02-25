@@ -29,6 +29,8 @@ export default defineConfig({
       ],
       strategies: 'generateSW',
       workbox: {
+        skipWaiting: false,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,woff2}'],
         runtimeCaching: [
           {
@@ -41,6 +43,10 @@ export default defineConfig({
                 maxAgeSeconds: 60 * 60 * 24 * 30
               }
             }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/v1\/.*/,
+            handler: 'NetworkOnly'
           }
         ]
       },

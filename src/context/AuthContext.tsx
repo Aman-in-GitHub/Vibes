@@ -48,7 +48,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         error: null
       });
 
-      navigate('/auth/create-account', { replace: true });
+      localStorage.removeItem('vibes_auth_session');
+
+      navigate('/auth/sign-in', { replace: true });
     } catch (error) {
       setAuthState((prev) => ({
         ...prev,
@@ -65,22 +67,64 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (session) {
-          const {
-            data: { user },
-            error
-          } = await supabase.auth.getUser();
+          try {
+            const {
+              data: { user },
+              error
+            } = await supabase.auth.getUser();
 
-          if (error || !user) {
-            await signOut();
-          } else {
-            setAuthState({
-              session,
-              user,
-              isLoading: false,
-              error: null
-            });
+            if (error || !user) {
+              if (!navigator.onLine) {
+                setAuthState({
+                  session,
+                  user: session.user,
+                  isLoading: false,
+                  error: null
+                });
+              } else {
+                await signOut();
+              }
+            } else {
+              setAuthState({
+                session,
+                user,
+                isLoading: false,
+                error: null
+              });
+              localStorage.setItem(
+                'vibes_auth_session',
+                JSON.stringify({ session, user })
+              );
+            }
+          } catch (error) {
+            if (!navigator.onLine) {
+              setAuthState({
+                session,
+                user: session.user,
+                isLoading: false,
+                error: null
+              });
+            } else {
+              await signOut();
+            }
           }
         } else {
+          if (!navigator.onLine) {
+            const storedAuth = localStorage.getItem('vibes_auth_session');
+            if (storedAuth) {
+              try {
+                const { session, user } = JSON.parse(storedAuth);
+                setAuthState({
+                  session,
+                  user,
+                  isLoading: false,
+                  error: null
+                });
+                return;
+              } catch (e) {}
+            }
+          }
+
           setAuthState({
             user: null,
             session: null,
@@ -89,6 +133,22 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (error) {
+        if (!navigator.onLine) {
+          const storedAuth = localStorage.getItem('vibes_auth_session');
+          if (storedAuth) {
+            try {
+              const { session, user } = JSON.parse(storedAuth);
+              setAuthState({
+                session,
+                user,
+                isLoading: false,
+                error: null
+              });
+              return;
+            } catch (e) {}
+          }
+        }
+
         setAuthState({
           session: null,
           user: null,
@@ -103,12 +163,29 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_, session) => {
-      setAuthState((prev) => ({
-        ...prev,
-        session,
-        user: session?.user ?? null,
-        isLoading: false
-      }));
+      if (session) {
+        setAuthState((prev) => ({
+          ...prev,
+          session,
+          user: session?.user ?? null,
+          isLoading: false
+        }));
+
+        localStorage.setItem(
+          'vibes_auth_session',
+          JSON.stringify({
+            session,
+            user: session?.user
+          })
+        );
+      } else {
+        setAuthState((prev) => ({
+          ...prev,
+          session: null,
+          user: null,
+          isLoading: false
+        }));
+      }
     });
 
     return () => subscription.unsubscribe();

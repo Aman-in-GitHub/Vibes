@@ -2,7 +2,7 @@ import './loader/pika.css';
 
 export default function Loader() {
   return (
-    <div className="pikachu-holder">
+    <section className="pikachu-holder">
       <div className="pikachu-inner">
         <div className="frame-0">
           <div className="tail"></div>
@@ -72,6 +72,6 @@ export default function Loader() {
           <div className="nose-mouth"></div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

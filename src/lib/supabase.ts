@@ -15,7 +15,13 @@ if (!supabaseAnonKey) {
 let supabase: SupabaseClient;
 
 try {
-  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false
+    }
+  });
 } catch (error) {
   throw new Error(`Supabase client initialization failed: ${error}`);
 }

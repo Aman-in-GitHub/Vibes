@@ -17,6 +17,7 @@ import {
   InputOTPSlot
 } from '@/components/ui/input-otp';
 import { db } from '@/lib/dexie';
+import { PostType } from '@/components/Posts';
 
 const SignInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email')
@@ -36,13 +37,13 @@ function SignIn() {
       }
     });
 
-  if (isLoading) {
-    return null;
-  }
-
   useEffect(() => {
     document.title = 'Signin - Vibes';
   }, []);
+
+  if (isLoading) {
+    return null;
+  }
 
   if (isAuthenticated) {
     if (screen !== 'otp') {
@@ -107,6 +108,71 @@ function SignIn() {
       }
 
       const user = data[0];
+      const userId = user.auth_id;
+
+      await db.users.clear();
+      await db.likes.clear();
+      await db.bookmarks.clear();
+
+      const { data: bookmarksWithPosts, error: bookmarkError } = await supabase
+        .from('bookmarks')
+        .select(
+          `
+          id,
+          added_at,
+          post_id,
+          user_id,
+          post:posts!inner(*)
+        `
+        )
+        .eq('user_id', userId);
+
+      if (bookmarkError) {
+        console.error('Error fetching bookmarks from Supabase:', bookmarkError);
+        throw bookmarkError;
+      }
+
+      if (bookmarksWithPosts && bookmarksWithPosts.length > 0) {
+        const formattedBookmarks = bookmarksWithPosts.map((bookmark: any) => ({
+          id: bookmark.id,
+          userId: bookmark.user_id as string,
+          postId: bookmark.post_id as string,
+          vibe: bookmark.post as PostType,
+          createdAt: bookmark.added_at as string
+        }));
+
+        await db.bookmarks.bulkPut(formattedBookmarks);
+      }
+
+      const { data: likesWithPosts, error: likeError } = await supabase
+        .from('likes')
+        .select(
+          `
+          id,
+          added_at,
+          post_id,
+          user_id,
+          post:posts!inner(*)
+        `
+        )
+        .eq('user_id', userId);
+
+      if (likeError) {
+        console.error('Error fetching likes from Supabase:', likeError);
+        throw likeError;
+      }
+
+      if (likesWithPosts && likesWithPosts.length > 0) {
+        const formattedLikes = likesWithPosts.map((like: any) => ({
+          id: like.id,
+          userId: like.user_id as string,
+          postId: like.post_id as string,
+          vibe: like.post as PostType,
+          createdAt: like.added_at as string
+        }));
+
+        await db.likes.bulkPut(formattedLikes);
+      }
 
       await db.users.put({
         id: user.auth_id,
@@ -114,8 +180,7 @@ function SignIn() {
         email: user.email,
         age: user.age,
         sex: user.sex,
-        isNsfw: user.isNsfw,
-        isSynced: true
+        isNsfw: user.isNsfw
       });
 
       reset();
@@ -211,7 +276,7 @@ function SignIn() {
             onClick={() => verifyOTP(otp)}
             className="mt-12 flex w-full items-center justify-center gap-2 rounded-xs bg-blue-600 py-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Create your account
+            Log in to your account
           </button>
         </div>
       )}
