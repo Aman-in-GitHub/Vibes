@@ -28,7 +28,7 @@ import Loader from '@/components/Loader';
 import { db } from '@/lib/dexie';
 import { useIsOnline } from '@/hooks/useIsOnline';
 
-const POSTS_PER_PAGE = 8;
+const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 4;
 const POST_TYPES = ['horror', 'nsfw'];
 
@@ -83,7 +83,7 @@ export async function handleBookmark(post: PostType) {
     }
 
     await db.bookmarks.put({
-      id: uuidv4(),
+      id: id,
       userId: user.id,
       postId: post.id,
       vibe: post,
@@ -156,6 +156,12 @@ export default function Posts({
   const navigate = useNavigate();
   const location = useLocation();
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => {
+    const loadedPages = JSON.parse(
+      sessionStorage.getItem('vibe-loaded-pages') || '{}'
+    );
+    return !loadedPages[type];
+  });
 
   const userId = useLiveQuery(async () => {
     const user = await getCurrentUser();
@@ -224,17 +230,22 @@ export default function Posts({
       if (navigationState) {
         const { scrollPosition, fromUrl } = JSON.parse(navigationState);
         if (location.pathname === fromUrl) {
-          setIsNavigatingBack(true);
-          if (mainRef.current) {
-            mainRef.current.style.scrollBehavior = 'auto';
-            mainRef.current.scrollTop = scrollPosition;
-            sessionStorage.removeItem('vibe-state-navigation-state');
-            setTimeout(() => {
-              if (mainRef.current) {
-                mainRef.current.style.scrollBehavior = 'smooth';
-              }
-            }, 100);
-          }
+          const timer = setTimeout(() => {
+            setIsNavigatingBack(true);
+            if (mainRef.current) {
+              mainRef.current.style.scrollBehavior = 'auto';
+              mainRef.current.scrollTop = scrollPosition;
+              sessionStorage.removeItem('vibe-state-navigation-state');
+
+              setTimeout(() => {
+                if (mainRef.current) {
+                  mainRef.current.style.scrollBehavior = 'smooth';
+                }
+              }, 100);
+            }
+          }, 0);
+
+          return () => clearTimeout(timer);
         }
       }
     } else {
@@ -242,19 +253,19 @@ export default function Posts({
         if (navigationState) {
           const { scrollPosition, fromUrl } = JSON.parse(navigationState);
           if (location.pathname === fromUrl) {
-            setIsNavigatingBack(true);
-            if (mainRef.current) {
-              mainRef.current.scrollTop = scrollPosition;
-              sessionStorage.removeItem('vibe-state-navigation-state');
-              setTimeout(() => {
-                if (mainRef.current) {
-                  mainRef.current.style.scrollBehavior = 'smooth';
-                }
-              }, 100);
-            }
+            const timer = setTimeout(() => {
+              setIsNavigatingBack(true);
+              if (mainRef.current) {
+                mainRef.current.style.scrollBehavior = 'smooth';
+                mainRef.current.scrollTop = scrollPosition;
+                sessionStorage.removeItem('vibe-state-navigation-state');
+              }
+            }, 0);
+
+            return () => clearTimeout(timer);
           }
         }
-      }, 250);
+      }, 150);
     }
   }, [location.pathname]);
 
@@ -272,6 +283,29 @@ export default function Posts({
     initialPageParam: 0,
     enabled: type === 'feed' && !isOffline
   });
+
+  useEffect(() => {
+    if (type === 'bookmark' || type === 'like') {
+      if (isLoading) {
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+
+          const loadedPages = JSON.parse(
+            sessionStorage.getItem('vibe-loaded-pages') || '{}'
+          );
+          loadedPages[type] = true;
+          sessionStorage.setItem(
+            'vibe-loaded-pages',
+            JSON.stringify(loadedPages)
+          );
+        }, 1000);
+
+        return () => clearTimeout(timer);
+      }
+    } else if (type === 'feed') {
+      setIsLoading(status === 'pending');
+    }
+  }, [type, status, isLoading]);
 
   useEffect(() => {
     function handleScroll() {
@@ -356,33 +390,13 @@ export default function Posts({
   }
 
   let posts: PostType[] = [];
-  let isLoading = false;
 
   if (type === 'feed') {
     posts = data?.pages.flat() ?? [];
-    isLoading = status === 'pending';
   } else if (type === 'bookmark') {
     posts = bookmarkedPosts;
-    isLoading = bookmarkedPosts.length === 0;
   } else if (type === 'like') {
     posts = likedPosts;
-    isLoading = likedPosts.length === 0;
-  }
-
-  if (isLoading) {
-    return (
-      <section className="motion-preset-slide-right motion-preset-blur-right flex h-[100dvh] flex-col items-center justify-center">
-        <Loader />
-      </section>
-    );
-  }
-
-  if (error && type === 'feed') {
-    return (
-      <section className="flex h-[100dvh] items-center justify-center bg-red-950">
-        <h2 className="text-xl text-red-500">{JSON.stringify(error)}</h2>
-      </section>
-    );
   }
 
   if (isOffline && type === 'feed') {
@@ -401,13 +415,29 @@ export default function Posts({
     );
   }
 
+  if (isLoading) {
+    return (
+      <section className="motion-preset-slide-right motion-preset-blur-right flex h-[100dvh] flex-col items-center justify-center">
+        <Loader />
+      </section>
+    );
+  }
+
+  if (error && type === 'feed') {
+    return (
+      <section className="flex h-[100dvh] items-center justify-center bg-red-950 px-4">
+        <h2 className="text-xl text-red-500">{JSON.stringify(error)}</h2>
+      </section>
+    );
+  }
+
   if (posts.length === 0) {
     return (
       <section
         ref={mainRef}
         className="motion-opacity-in motion-duration-1000 flex h-[100dvh] items-center justify-center"
       >
-        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 bg-[#111]/30 px-4 backdrop-blur-sm">
+        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
           <Left className="text-3xl" onClick={() => navigate('/feed')} />
           <h1 className="text-4xl font-bold">
             {type === 'bookmark'
@@ -457,14 +487,14 @@ export default function Posts({
       }}
     >
       {type === 'bookmark' && (
-        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 bg-[#111]/30 px-4 backdrop-blur-sm">
+        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
           <Left className="text-3xl" onClick={() => navigate('/feed')} />
           <h1 className="font-geist text-4xl font-bold">Bookmarks</h1>
         </div>
       )}
 
       {type === 'like' && (
-        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 bg-[#111]/30 px-4 backdrop-blur-sm">
+        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
           <Left className="text-3xl" onClick={() => navigate('/feed')} />
           <h1 className="font-geist text-4xl font-bold">Your likes</h1>
         </div>
