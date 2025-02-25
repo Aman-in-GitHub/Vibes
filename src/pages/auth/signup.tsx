@@ -122,7 +122,9 @@ function SignUp() {
           name: getValues('name'),
           age: getValues('age'),
           sex: getValues('sex').toLowerCase(),
-          isNsfw: getValues('isNsfw')
+          is_nsfw: getValues('isNsfw'),
+          scrolled_posts: [],
+          read_posts: []
         })
         .select('auth_id');
 
@@ -142,7 +144,9 @@ function SignUp() {
         email: getValues('email'),
         age: getValues('age'),
         sex: getValues('sex').toLowerCase() as 'male' | 'female',
-        isNsfw: getValues('isNsfw') || false
+        isNsfw: getValues('isNsfw') || false,
+        scrolledPosts: [],
+        readPosts: []
       });
 
       reset();

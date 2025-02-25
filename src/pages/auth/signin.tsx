@@ -180,7 +180,9 @@ function SignIn() {
         email: user.email,
         age: user.age,
         sex: user.sex,
-        isNsfw: user.isNsfw
+        isNsfw: user.is_nsfw,
+        scrolledPosts: user.scrolled_posts || [],
+        readPosts: user.read_posts || []
       });
 
       reset();

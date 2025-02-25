@@ -52,7 +52,9 @@ async function syncLocalDatabaseWithSupabase() {
         email: profileData.email,
         age: profileData.age,
         sex: profileData.sex,
-        isNsfw: profileData.isNsfw
+        isNsfw: profileData.is_nsfw,
+        scrolledPosts: profileData.scrolled_posts || [],
+        readPosts: profileData.read_posts || []
       });
     }
 
@@ -94,7 +96,7 @@ async function syncLocalDatabaseWithSupabase() {
       }));
 
       await db.bookmarks.bulkPut(formattedBookmarks);
-      toast.info('Synced bookmarks with database');
+      toast.info('Synced your bookmarks with database');
     }
 
     const { data: supabaseLikes, error: likeError } = await supabase
@@ -133,7 +135,7 @@ async function syncLocalDatabaseWithSupabase() {
       }));
 
       await db.likes.bulkPut(formattedLikes);
-      toast.info('Synced likes with database');
+      toast.info('Synced your likes with database');
     }
   } catch (error) {
     console.error('Error during sync check:', error);
@@ -199,7 +201,7 @@ function App() {
       to: '/auth/create-account'
     },
     {
-      from: ['/foryou', '/for-you'],
+      from: ['/foryou', '/for-you', 'fyp'],
       to: '/feed'
     },
     {

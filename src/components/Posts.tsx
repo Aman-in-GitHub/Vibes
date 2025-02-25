@@ -298,7 +298,7 @@ export default function Posts({
             'vibe-loaded-pages',
             JSON.stringify(loadedPages)
           );
-        }, 1000);
+        }, 1500);
 
         return () => clearTimeout(timer);
       }

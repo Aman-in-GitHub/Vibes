@@ -8,6 +8,8 @@ export type UserType = {
   age: number;
   sex: 'male' | 'female';
   isNsfw: boolean;
+  scrolledPosts: string[];
+  readPosts: string[];
 };
 
 export type BookmarkType = {

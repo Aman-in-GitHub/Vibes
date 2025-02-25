@@ -18,12 +18,42 @@ import { supabase } from '@/lib/supabase';
 import Loader from '@/components/Loader';
 import { toast } from 'sonner';
 import { useIsOnline } from '@/hooks/useIsOnline';
+import useAuth from '@/hooks/useAuth';
 
 export default function Vibe() {
   const { isOffline } = useIsOnline();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const { id } = useParams();
   const [post, setPost] = useState<PostType>(location.state?.post ?? null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !post) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) return;
+
+        if (user?.readPosts?.includes(post.id)) {
+          return;
+        }
+
+        const updatedReadPosts = [...user.readPosts, post.id];
+
+        await supabase
+          .from('profiles')
+          .update({ read_posts: updatedReadPosts })
+          .eq('auth_id', user.id);
+
+        await db.users.update(user.id, { readPosts: updatedReadPosts });
+      } catch (error) {
+        console.error('Error updating read posts:', error);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [isAuthenticated, post]);
 
   useEffect(() => {
     async function fetchPost() {
@@ -205,11 +235,10 @@ export default function Vibe() {
       </p>
 
       <div className="flex w-full items-center justify-between px-4 pb-4">
-        <a
-          href={post.url}
-          target="_blank"
-          rel="noreferrer"
-          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90`}
+        <button
+          disabled={isOffline}
+          onClick={() => window.open(post.url, '_blank', 'noreferrer')}
+          className={`flex items-center gap-2 rounded-full border-2 ${backgroundColor} ${textColor} px-3 py-2 ${borderColor} duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
         >
           <img
             src={`/sources/${post.platform}.png`}
@@ -217,7 +246,8 @@ export default function Vibe() {
             className="size-4"
           />
           <span className="flex items-center gap-2">Source</span>
-        </a>
+        </button>
+
         <button
           disabled={isOffline}
           onClick={() => handleBookmark(post)}
