@@ -10,7 +10,9 @@ import {
   PiHeart as LikeLine,
   PiHeartFill as LikeFill,
   PiCaretLeft as Left,
-  PiScroll as Scroll
+  PiScroll as Scroll,
+  PiArrowUpRight as Link,
+  PiWarning as Warning
 } from 'react-icons/pi';
 import { v4 as uuidv4 } from 'uuid';
 import Marquee from 'react-fast-marquee';
@@ -26,14 +28,32 @@ import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
 import Loader from '@/components/Loader';
-import { db } from '@/lib/dexie';
+import { db, UserType } from '@/lib/dexie';
 import { useIsOnline } from '@/hooks/useIsOnline';
 import { useInView } from 'react-intersection-observer';
 import Confetti from 'react-confetti';
 import { AnimatePresence, motion } from 'motion/react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle
+} from '@/components/ui/drawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { DialogClose } from '@radix-ui/react-dialog';
+import useAuth from '@/hooks/useAuth';
 
 const POSTS_PER_PAGE = 12;
-const POSTS_BEFORE_FETCH = 4;
+const POSTS_BEFORE_FETCH = 6;
 const POST_TYPES = ['horror', 'nsfw'];
 
 export type PostType = {
@@ -48,6 +68,7 @@ export type PostType = {
   created_at: string;
   scraped_at: string;
   tags: string[];
+  isChefsKiss: boolean;
 };
 
 export async function handleBookmark(post: PostType) {
@@ -156,79 +177,95 @@ export default function Posts({
 }) {
   const currentPostIndex = useRef(0);
   const { isOffline } = useIsOnline();
+  const { signOut } = useAuth();
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
-  const [isLoading, setIsLoading] = useState(() => {
-    const loadedPages = JSON.parse(
-      sessionStorage.getItem('vibe-loaded-pages') || '{}'
-    );
-    return !loadedPages[type];
-  });
   const [showConfetti, setShowConfetti] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(true);
+  const [likeLoading, setLikeLoading] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
 
   const { ref: endOfPostsRef, inView: isEndOfPostsVisible } = useInView({
-    threshold: 0.5,
+    threshold: 0.75,
     triggerOnce: true
   });
 
-  const userId = useLiveQuery(async () => {
+  const user = useLiveQuery(async () => {
     const user = await getCurrentUser();
-    return user?.id;
+    return user as UserType;
   }, []);
 
   const bookmarkedPosts = useLiveQuery(
     async () => {
-      if (!userId) return [];
+      try {
+        setBookmarkLoading(true);
+        if (!user || type !== 'bookmark') return [];
 
-      const bookmarks = await db.bookmarks
-        .where('userId')
-        .equals(userId)
-        .toArray();
+        const bookmarks = await db.bookmarks
+          .where('userId')
+          .equals(user?.id)
+          .toArray();
 
-      return bookmarks.map((b) => b.vibe);
+        setBookmarkLoading(false);
+        return bookmarks.map((b) => b.vibe);
+      } catch (error) {
+        console.error('Error fetching bookmarked posts:', error);
+        setBookmarkLoading(false);
+        return [];
+      }
     },
-    [userId],
+    [user?.id, type],
     []
   );
 
   const likedPosts = useLiveQuery(
     async () => {
-      if (!userId) return [];
+      try {
+        setLikeLoading(true);
+        if (!user || type !== 'like') return [];
 
-      const likes = await db.likes.where('userId').equals(userId).toArray();
+        const likes = await db.likes.where('userId').equals(user?.id).toArray();
 
-      return likes.map((l) => l.vibe);
+        setLikeLoading(false);
+        return likes.map((l) => l.vibe);
+      } catch (error) {
+        console.error('Error fetching liked posts:', error);
+        setLikeLoading(false);
+        return [];
+      }
     },
-    [userId],
+    [user?.id, type],
     []
   );
 
   const bookmarkedPostIds = useLiveQuery(
     async () => {
-      if (!userId) return new Set<string>();
+      if (!user) return new Set<string>();
 
       const bookmarks = await db.bookmarks
         .where('userId')
-        .equals(userId)
+        .equals(user.id)
         .toArray();
 
       return new Set(bookmarks.map((b) => b.postId));
     },
-    [userId],
+    [user?.id],
     new Set<string>()
   );
 
   const likedPostIds = useLiveQuery(
     async () => {
-      if (!userId) return new Set<string>();
+      if (!user) return new Set<string>();
 
-      const likes = await db.likes.where('userId').equals(userId).toArray();
+      const likes = await db.likes.where('userId').equals(user?.id).toArray();
 
       return new Set(likes.map((l) => l.postId));
     },
-    [userId],
+    [user?.id],
     new Set<string>()
   );
 
@@ -236,48 +273,28 @@ export default function Posts({
     const navigationState = sessionStorage.getItem(
       'vibe-state-navigation-state'
     );
-    if (type === 'feed') {
-      if (navigationState) {
-        const { scrollPosition, fromUrl } = JSON.parse(navigationState);
-        if (location.pathname === fromUrl) {
-          const timer = setTimeout(() => {
-            setIsNavigatingBack(true);
+
+    if (navigationState) {
+      if (type === 'bookmark' && bookmarkLoading) return;
+      if (type === 'like' && likeLoading) return;
+
+      const { scrollPosition, fromUrl } = JSON.parse(navigationState);
+      if (location.pathname === fromUrl) {
+        setIsNavigatingBack(true);
+        if (mainRef.current) {
+          mainRef.current.style.scrollBehavior = 'auto';
+          mainRef.current.scrollTop = scrollPosition;
+          sessionStorage.removeItem('vibe-state-navigation-state');
+
+          setTimeout(() => {
             if (mainRef.current) {
-              mainRef.current.style.scrollBehavior = 'auto';
-              mainRef.current.scrollTop = scrollPosition;
-              sessionStorage.removeItem('vibe-state-navigation-state');
-
-              setTimeout(() => {
-                if (mainRef.current) {
-                  mainRef.current.style.scrollBehavior = 'smooth';
-                }
-              }, 100);
+              mainRef.current.style.scrollBehavior = 'smooth';
             }
-          }, 0);
-
-          return () => clearTimeout(timer);
+          }, 100);
         }
       }
-    } else {
-      setTimeout(() => {
-        if (navigationState) {
-          const { scrollPosition, fromUrl } = JSON.parse(navigationState);
-          if (location.pathname === fromUrl) {
-            const timer = setTimeout(() => {
-              setIsNavigatingBack(true);
-              if (mainRef.current) {
-                mainRef.current.style.scrollBehavior = 'smooth';
-                mainRef.current.scrollTop = scrollPosition;
-                sessionStorage.removeItem('vibe-state-navigation-state');
-              }
-            }, 0);
-
-            return () => clearTimeout(timer);
-          }
-        }
-      }, 250);
     }
-  }, [location.pathname]);
+  }, [location.pathname, bookmarkLoading, likeLoading]);
 
   const {
     data,
@@ -309,29 +326,6 @@ export default function Posts({
       return () => clearTimeout(timer);
     }
   }, [hasNextPage, isEndOfPostsVisible]);
-
-  useEffect(() => {
-    if (type === 'bookmark' || type === 'like') {
-      if (isLoading) {
-        const timer = setTimeout(() => {
-          setIsLoading(false);
-
-          const loadedPages = JSON.parse(
-            sessionStorage.getItem('vibe-loaded-pages') || '{}'
-          );
-          loadedPages[type] = true;
-          sessionStorage.setItem(
-            'vibe-loaded-pages',
-            JSON.stringify(loadedPages)
-          );
-        }, 1500);
-
-        return () => clearTimeout(timer);
-      }
-    } else if (type === 'feed') {
-      setIsLoading(status === 'pending');
-    }
-  }, [type, status, isLoading]);
 
   useEffect(() => {
     function handleScroll() {
@@ -439,9 +433,20 @@ export default function Posts({
     );
   }
 
-  if (isLoading) {
+  if (status === 'pending' && type === 'feed') {
     return (
       <section className="motion-preset-slide-right motion-preset-blur-right flex h-[100dvh] flex-col items-center justify-center">
+        <Loader />
+      </section>
+    );
+  }
+
+  if (
+    (bookmarkLoading && type === 'bookmark') ||
+    (likeLoading && type === 'like')
+  ) {
+    return (
+      <section className="motion-preset-slide-right flex h-[100dvh] flex-col items-center justify-center">
         <Loader />
       </section>
     );
@@ -461,16 +466,14 @@ export default function Posts({
         ref={mainRef}
         className="motion-opacity-in motion-duration-1000 flex h-[100dvh] items-center justify-center"
       >
-        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
-          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
-          <h1 className="text-4xl font-bold">
-            {type === 'bookmark'
-              ? 'Bookmarks'
-              : type === 'like'
-                ? 'Favorites'
-                : 'For You'}
-          </h1>
-        </div>
+        {type !== 'feed' && (
+          <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
+            <Left className="text-3xl" onClick={() => navigate('/fyp')} />
+            <h1 className="text-4xl font-bold">
+              {type === 'bookmark' ? 'Bookmarks' : 'Favorites'}
+            </h1>
+          </div>
+        )}
 
         <div className="text-center">
           <div className="mx-auto mb-4 w-full text-center">
@@ -512,6 +515,125 @@ export default function Posts({
         WebkitOverflowScrolling: 'touch'
       }}
     >
+      {type === 'feed' && (
+        <Avatar
+          className="outline-muted motion-preset-blur-left motion-opacity-in motion-duration-1000 fixed top-4 right-4 z-[100] outline-2"
+          onClick={() => {
+            if (!user) {
+              setIsCreateAccountOpen(true);
+              return;
+            }
+
+            setIsDrawerOpen(true);
+          }}
+        >
+          {user?.avatarUrl && <AvatarImage src={user?.avatarUrl} />}
+
+          <AvatarFallback className="bg-muted/70 text-white backdrop-blur-sm">
+            {user ? user.name.charAt(0).toUpperCase() : '?'}
+          </AvatarFallback>
+        </Avatar>
+      )}
+      <Drawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
+        <DrawerContent className="px-0">
+          <DrawerHeader>
+            <DrawerTitle className="-mb-1 flex items-center justify-center gap-2 text-3xl">
+              Settings
+            </DrawerTitle>
+          </DrawerHeader>
+          <DrawerFooter className="gap-0 px-0 py-0">
+            <button
+              className="flex w-full items-center justify-between bg-blue-600 px-4 py-4 text-xl duration-300 active:bg-blue-500"
+              onClick={() => navigate('/bookmarks')}
+            >
+              Your Bookmarks
+              <Link className="text-3xl text-blue-200" />
+            </button>
+            <button
+              className="flex w-full items-center justify-between bg-rose-600 px-4 py-4 text-xl duration-300 active:bg-rose-500"
+              onClick={() => navigate('/favorites')}
+            >
+              Your Favorites
+              <Link className="text-3xl text-rose-200" />
+            </button>
+            <button
+              className="flex w-full items-center justify-between bg-red-950 px-4 py-4 text-xl text-red-500 duration-300"
+              onClick={() => setIsDeleteAccountOpen(true)}
+            >
+              Log out
+              <Warning className="text-3xl text-red-500" />
+            </button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      <Dialog
+        open={isCreateAccountOpen}
+        onOpenChange={(open) => setIsCreateAccountOpen(open)}
+      >
+        <DialogContent className="border-green-900 bg-[#05250a] px-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Log in | Sign up</DialogTitle>
+            <DialogDescription>
+              Once you log in or create a new account you can like & save vibes.
+              NSFW content is also available to logged in users only & you can
+              enjoy full gallery of vibes without any limits.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose className="flex items-center justify-between gap-8 outline-0">
+              <button className="rounded-xs bg-green-950 px-4 py-2 whitespace-nowrap">
+                No, I'm good
+              </button>
+              <button
+                className="rounded-xs bg-green-950 px-4 py-2 whitespace-nowrap text-green-500"
+                onClick={() => {
+                  setIsCreateAccountOpen(false);
+                  navigate('/auth/create-account');
+                }}
+              >
+                Yeah Sure
+              </button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isDeleteAccountOpen}
+        onOpenChange={(open) => setIsDeleteAccountOpen(open)}
+      >
+        <DialogContent className="border-red-900 bg-[#230606] px-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              Are you absolutely sure you want to log out of Vibes?
+            </DialogTitle>
+            <DialogDescription>
+              Once you log out you cannot like & save vibes. NSFW content is not
+              shown to logged out users & you can only enjoy limited number of
+              vibes.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose className="flex items-center justify-between gap-8 outline-0">
+              <button className="rounded-xs bg-red-950 px-4 py-2 whitespace-nowrap">
+                No, I'm good
+              </button>
+              <button
+                className="rounded-xs bg-red-950 px-4 py-2 whitespace-nowrap text-red-500"
+                onClick={async () => {
+                  await signOut();
+                  setIsDeleteAccountOpen(false);
+                  setIsDrawerOpen(false);
+                }}
+              >
+                Yes, log me out
+              </button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {type === 'bookmark' && (
         <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
           <Left className="text-3xl" onClick={() => navigate('/fyp')} />
@@ -543,15 +665,24 @@ export default function Posts({
               className="flex w-full flex-col justify-center space-y-4"
               onClick={() => handleDoubleTap(post)}
             >
-              <div className="-mt-8 px-4">
+              <div className="-mt-16 px-4">
                 <h2 className={`${font} text-5xl`}>
                   {title.length > 69 ? title.slice(0, 69) + '...' : title}
                 </h2>
 
-                <p className="font-lora mt-1 flex items-center gap-1 text-sm">
-                  <Hourglass />
-                  {calculateReadingTime(post.content)} min
-                </p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="font-lora flex items-center gap-1 text-sm">
+                    <Hourglass />
+                    {calculateReadingTime(post.content)} min
+                  </p>
+                  {post.isChefsKiss && (
+                    <img
+                      src="/chefskiss.png"
+                      alt="Chef's Kiss"
+                      className="motion-opacity-in size-5"
+                    />
+                  )}
+                </div>
               </div>
 
               <p className="font-lora px-4">
@@ -583,7 +714,7 @@ export default function Posts({
               </div>
             </div>
 
-            <div className="motion-preset-slide-up motion-duration-1000 absolute bottom-8 z-[1000] flex w-full items-center justify-between px-4">
+            <div className="motion-preset-slide-up motion-duration-1000 absolute bottom-8 z-[10] flex w-full items-center justify-between px-4">
               <button
                 onClick={() =>
                   handleShare(
@@ -646,13 +777,20 @@ export default function Posts({
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 2 }}
+                transition={{ duration: 1.5 }}
               >
                 <Confetti
                   width={window.innerWidth}
                   height={window.innerHeight}
                   numberOfPieces={250}
                   gravity={0.1}
+                  colors={
+                    type === 'feed'
+                      ? ['#FFEB3B', '#FFC107', '#FF9800']
+                      : type === 'bookmark'
+                        ? ['#3f51b5', '#2196f3', '#03a9f4', '#00bcd4']
+                        : ['#f44336', '#e91e63', '#FF5722']
+                  }
                 />
               </motion.div>
             )}

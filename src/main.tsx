@@ -48,7 +48,7 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <PWAUpdater />
           <App />
-          <Toaster richColors={true} position="top-center" duration={1500} />
+          <Toaster richColors={true} position="top-center" duration={2000} />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

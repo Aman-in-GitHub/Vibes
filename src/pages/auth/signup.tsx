@@ -29,6 +29,9 @@ import {
 } from '@/components/ui/drawer';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import { AnimatePresence, motion } from 'motion/react';
+import Confetti from 'react-confetti';
 
 const terms = `
 **1. Agreement to Terms:** By accessing and using Vibes, you agree to these Terms and Conditions. If you disagree, do not use Vibes.
@@ -92,6 +95,7 @@ function SignUp() {
   const { isAuthenticated, isLoading } = useAuth();
   const [hasReadTerms, setHasReadTerms] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const {
     control,
     register,
@@ -125,6 +129,16 @@ function SignUp() {
     }
     return <Navigate to="/" replace={true} />;
   }
+
+  useEffect(() => {
+    if (showConfetti) {
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showConfetti]);
 
   async function onSignUp(data: SignUpFormData) {
     if (!hasReadTerms) {
@@ -200,16 +214,20 @@ function SignUp() {
         email: getValues('email'),
         age: getValues('age'),
         sex: getValues('sex').toLowerCase() as 'male' | 'female',
+        avatarUrl: '',
         isNsfw: getValues('isNsfw') || false,
         scrolledPosts: [],
         readPosts: []
       });
 
-      toast.success('Welcome to Vibes');
+      toast.success('Welcome to Vibes', {
+        duration: 5000
+      });
 
       reset();
       setOtp('');
       setHasReadTerms(false);
+      setShowConfetti(true);
       return <Navigate to="/" replace={true} />;
     } catch (error) {
       console.error('OTP Verification Error:', error);
@@ -224,6 +242,24 @@ function SignUp() {
 
   return (
     <main className="motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
+      <AnimatePresence>
+        {showConfetti && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5 }}
+          >
+            <Confetti
+              width={window.innerWidth}
+              height={window.innerHeight}
+              numberOfPieces={250}
+              gravity={0.1}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {screen === 'signup' ? (
         <>
           <h1 className="mb-4 text-7xl font-bold">Create a new account</h1>
@@ -386,6 +422,7 @@ function SignUp() {
                               )
                             }}
                             remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
                           >
                             {terms}
                           </Markdown>
@@ -440,7 +477,7 @@ function SignUp() {
           </form>
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center">
+        <section className="motion-opacity-in motion-duration-1000 flex flex-col items-center justify-center">
           <h1 className="mb-12 text-7xl font-bold">Verify your OTP</h1>
 
           <InputOTP
@@ -469,7 +506,7 @@ function SignUp() {
           >
             Create your account
           </button>
-        </div>
+        </section>
       )}
     </main>
   );

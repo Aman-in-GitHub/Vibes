@@ -32,7 +32,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   async function signOut() {
-    toast.warning('Signing out of Vibes');
+    toast.warning('Logged out of Vibes', {
+      duration: 5000
+    });
 
     await db.users.clear();
     await db.likes.clear();

@@ -61,6 +61,7 @@ async function syncLocalDatabaseWithSupabase() {
         email: profileData.email,
         age: profileData.age,
         sex: profileData.sex,
+        avatarUrl: profileData.avatar_url,
         isNsfw: profileData.is_nsfw,
         scrolledPosts: profileData.scrolled_posts || [],
         readPosts: profileData.read_posts || []
@@ -169,7 +170,7 @@ function App() {
       toast.warning(
         'You are currently offline. You can go to your bookmarks to enjoy saved vibes',
         {
-          duration: 3000
+          duration: 5000
         }
       );
     }
@@ -180,7 +181,7 @@ function App() {
       toast.success(
         'You are back online. All the functionality of Vibes is restored',
         {
-          duration: 3000
+          duration: 5000
         }
       );
     }

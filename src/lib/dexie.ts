@@ -7,6 +7,7 @@ export type UserType = {
   email: string;
   age: number;
   sex: 'male' | 'female';
+  avatarUrl: string;
   isNsfw: boolean;
   scrolledPosts: string[];
   readPosts: string[];

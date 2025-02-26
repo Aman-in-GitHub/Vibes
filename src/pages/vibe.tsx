@@ -1,6 +1,7 @@
 import { useLocation, useParams } from 'react-router';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { getCurrentUser, getPostTypeStyles } from '@/utils';
 import {
@@ -225,6 +226,7 @@ export default function Vibe() {
             )
           }}
           remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
         >
           {post.content}
         </Markdown>

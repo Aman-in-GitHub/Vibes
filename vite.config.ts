@@ -22,6 +22,7 @@ export default defineConfig({
         'pwa-64x64.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        '/chefskiss.png',
         'fonts/Geist.woff2',
         'fonts/Lora.woff2',
         'fonts/Creepster.woff2',

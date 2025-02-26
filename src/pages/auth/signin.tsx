@@ -178,12 +178,15 @@ function SignIn() {
         email: user.email,
         age: user.age,
         sex: user.sex,
+        avatarUrl: user.avatar_url,
         isNsfw: user.is_nsfw,
         scrolledPosts: user.scrolled_posts || [],
         readPosts: user.read_posts || []
       });
 
-      toast.success('OTP verified successfully');
+      toast.success('OTP verified successfully', {
+        duration: 3000
+      });
 
       reset();
       setOtp('');
@@ -251,7 +254,7 @@ function SignIn() {
           </form>
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center">
+        <section className="motion-opacity-in motion-duration-100 flex flex-col items-center justify-center">
           <h1 className="mb-12 text-7xl font-bold">Verify your OTP</h1>
 
           <InputOTP
@@ -280,7 +283,7 @@ function SignIn() {
           >
             Log in to your account
           </button>
-        </div>
+        </section>
       )}
     </main>
   );
