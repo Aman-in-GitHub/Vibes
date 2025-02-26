@@ -9,7 +9,8 @@ import {
   PiBookmarkSimpleFill as BookmarkFill,
   PiHeart as LikeLine,
   PiHeartFill as LikeFill,
-  PiCaretLeft as Left
+  PiCaretLeft as Left,
+  PiScroll as Scroll
 } from 'react-icons/pi';
 import { v4 as uuidv4 } from 'uuid';
 import Marquee from 'react-fast-marquee';
@@ -461,23 +462,25 @@ export default function Posts({
         className="motion-opacity-in motion-duration-1000 flex h-[100dvh] items-center justify-center"
       >
         <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
-          <Left className="text-3xl" onClick={() => navigate('/feed')} />
+          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
           <h1 className="text-4xl font-bold">
             {type === 'bookmark'
               ? 'Bookmarks'
               : type === 'like'
                 ? 'Favorites'
-                : 'Feed'}
+                : 'For You'}
           </h1>
         </div>
 
         <div className="text-center">
           <div className="mx-auto mb-4 w-full text-center">
-            {type === 'bookmark' ? (
+            {type === 'bookmark' && (
               <BookmarkLine className="mx-auto text-8xl" />
-            ) : (
-              type === 'like' && <LikeLine className="mx-auto text-8xl" />
             )}
+
+            {type === 'like' && <LikeLine className="mx-auto text-8xl" />}
+
+            {type === 'feed' && <Scroll className="mx-auto text-8xl" />}
           </div>
 
           <h2 className="text-2xl font-bold">
@@ -511,14 +514,14 @@ export default function Posts({
     >
       {type === 'bookmark' && (
         <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
-          <Left className="text-3xl" onClick={() => navigate('/feed')} />
+          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
           <h1 className="font-geist text-4xl font-bold">Bookmarks</h1>
         </div>
       )}
 
       {type === 'like' && (
         <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
-          <Left className="text-3xl" onClick={() => navigate('/feed')} />
+          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
           <h1 className="font-geist text-4xl font-bold">Favorites</h1>
         </div>
       )}

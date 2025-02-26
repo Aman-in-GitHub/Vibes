@@ -212,8 +212,8 @@ function App() {
       to: '/auth/create-account'
     },
     {
-      from: ['/foryou', '/for-you', 'fyp'],
-      to: '/feed'
+      from: ['/foryou', '/for-you', 'feed'],
+      to: '/fyp'
     },
     {
       from: ['/bookmark', '/saved'],
@@ -228,7 +228,7 @@ function App() {
   return (
     <Routes>
       <Route index element={<Index />} />
-      <Route path="/feed" element={<Feed />} />
+      <Route path="/fyp" element={<Feed />} />
       <Route path="/bookmarks" element={<Bookmarks />} />
       <Route path="/favorites" element={<Likes />} />
       <Route path="/vibe/:id" element={<Vibe />} />

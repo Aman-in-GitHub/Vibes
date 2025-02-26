@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router';
 
 function Index() {
-  return <Navigate to="/feed" replace={true} />;
+  return <Navigate to="/fyp" replace={true} />;
 }
 
 export default Index;

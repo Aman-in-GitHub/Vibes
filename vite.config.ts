@@ -61,21 +61,42 @@ export default defineConfig({
         orientation: 'portrait',
         shortcuts: [
           {
-            name: 'For You Page',
-            short_name: 'For You Page',
+            name: 'FYP',
+            short_name: 'FYP',
             description: 'Vibes cooked up just for you 🧑‍🍳',
-            url: '/feed'
+            icons: [
+              {
+                src: '/shortcuts/fyp.png',
+                sizes: '64x64',
+                type: 'image/png'
+              }
+            ],
+            url: '/fyp'
           },
           {
             name: 'Bookmarks',
             short_name: 'Bookmarks',
             description: 'Your secret treasure chest 💰',
+            icons: [
+              {
+                src: '/shortcuts/bookmark.png',
+                sizes: '64x64',
+                type: 'image/png'
+              }
+            ],
             url: '/bookmarks'
           },
           {
             name: 'Favorites',
             short_name: 'Favorites',
             description: 'Your absolute faves ✨',
+            icons: [
+              {
+                src: '/shortcuts/favorite.png',
+                sizes: '64x64',
+                type: 'image/png'
+              }
+            ],
             url: '/favorites'
           }
         ],
