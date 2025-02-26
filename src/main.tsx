@@ -27,7 +27,7 @@ function PWAUpdater() {
     },
     onNeedRefresh() {
       toast.info(
-        'Update available. Will automatically update on next app launch.'
+        'Update available. App will automatically update on next launch'
       );
     }
   });
@@ -48,7 +48,7 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <PWAUpdater />
           <App />
-          <Toaster richColors={true} position="top-center" />
+          <Toaster richColors={true} position="top-center" duration={1500} />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

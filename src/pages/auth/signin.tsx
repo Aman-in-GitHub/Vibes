@@ -47,7 +47,7 @@ function SignIn() {
 
   if (isAuthenticated) {
     if (screen !== 'otp') {
-      toast.warning('You’re already logged in. Redirecting to your feed');
+      toast.warning('You’re already logged in. Redirecting');
     }
     return <Navigate to="/" replace={true} />;
   }
@@ -95,8 +95,6 @@ function SignIn() {
       if (error) {
         throw error;
       }
-
-      toast.success('OTP verified successfully');
 
       const { data, error: profileError } = await supabase
         .from('profiles')
@@ -184,6 +182,8 @@ function SignIn() {
         scrolledPosts: user.scrolled_posts || [],
         readPosts: user.read_posts || []
       });
+
+      toast.success('OTP verified successfully');
 
       reset();
       setOtp('');

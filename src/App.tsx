@@ -28,14 +28,23 @@ async function syncLocalDatabaseWithSupabase() {
 
     const userId = user.id;
     const localUser = await db.users.get(userId);
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('auth_id', userId)
+      .single();
 
-    if (!localUser || userId !== localUser?.id) {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('auth_id', userId)
-        .single();
+    const isReadPostsSame =
+      localUser?.readPosts.length === profileData?.read_posts.length;
+    const isScrollPostsSame =
+      localUser?.scrolledPosts.length === profileData?.scrolled_posts.length;
 
+    if (
+      !localUser ||
+      userId !== localUser?.id ||
+      !isReadPostsSame ||
+      !isScrollPostsSame
+    ) {
       if (profileError) {
         console.error('Error fetching profile from Supabase:', profileError);
         throw profileError;
@@ -56,6 +65,8 @@ async function syncLocalDatabaseWithSupabase() {
         scrolledPosts: profileData.scrolled_posts || [],
         readPosts: profileData.read_posts || []
       });
+
+      toast.info('Synced your profile with the database');
     }
 
     const { data: supabaseBookmarks, error: bookmarkError } = await supabase
@@ -96,7 +107,7 @@ async function syncLocalDatabaseWithSupabase() {
       }));
 
       await db.bookmarks.bulkPut(formattedBookmarks);
-      toast.info('Synced your bookmarks with database');
+      toast.info('Synced your bookmarks with the database');
     }
 
     const { data: supabaseLikes, error: likeError } = await supabase
@@ -135,11 +146,11 @@ async function syncLocalDatabaseWithSupabase() {
       }));
 
       await db.likes.bulkPut(formattedLikes);
-      toast.info('Synced your likes with database');
+      toast.info('Synced your likes with the database');
     }
   } catch (error) {
     console.error('Error during sync check:', error);
-    toast.error('Error syncing with database');
+    toast.error('Error syncing with the database');
   }
 }
 
@@ -158,7 +169,7 @@ function App() {
       toast.warning(
         'You are currently offline. You can go to your bookmarks to enjoy saved vibes',
         {
-          duration: 7500
+          duration: 3000
         }
       );
     }
@@ -169,7 +180,7 @@ function App() {
       toast.success(
         'You are back online. All the functionality of Vibes is restored',
         {
-          duration: 7500
+          duration: 3000
         }
       );
     }

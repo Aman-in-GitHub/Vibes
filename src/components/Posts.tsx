@@ -27,6 +27,9 @@ import { useDoubleTap } from '@/hooks/useDoubleTap';
 import Loader from '@/components/Loader';
 import { db } from '@/lib/dexie';
 import { useIsOnline } from '@/hooks/useIsOnline';
+import { useInView } from 'react-intersection-observer';
+import Confetti from 'react-confetti';
+import { AnimatePresence, motion } from 'motion/react';
 
 const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 4;
@@ -162,6 +165,12 @@ export default function Posts({
     );
     return !loadedPages[type];
   });
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const { ref: endOfPostsRef, inView: isEndOfPostsVisible } = useInView({
+    threshold: 0.5,
+    triggerOnce: true
+  });
 
   const userId = useLiveQuery(async () => {
     const user = await getCurrentUser();
@@ -265,7 +274,7 @@ export default function Posts({
             return () => clearTimeout(timer);
           }
         }
-      }, 150);
+      }, 250);
     }
   }, [location.pathname]);
 
@@ -279,10 +288,26 @@ export default function Posts({
   } = useInfiniteQuery({
     queryKey: ['posts', 'feed'],
     queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
-    getNextPageParam: (_, allPages) => allPages.length,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < POSTS_PER_PAGE) {
+        return undefined;
+      }
+      return allPages.length;
+    },
     initialPageParam: 0,
     enabled: type === 'feed' && !isOffline
   });
+
+  useEffect(() => {
+    if (!hasNextPage && isEndOfPostsVisible) {
+      setShowConfetti(true);
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasNextPage, isEndOfPostsVisible]);
 
   useEffect(() => {
     if (type === 'bookmark' || type === 'like') {
@@ -356,8 +381,6 @@ export default function Posts({
     if (error) {
       throw error;
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return data || [];
   }
@@ -511,46 +534,50 @@ export default function Posts({
         return (
           <section
             key={post.id}
-            onClick={() => handleDoubleTap(post)}
             className="motion-opacity-in motion-duration-1000 relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
           >
-            <div className="-mt-8 px-4">
-              <h2 className={`${font} text-5xl`}>
-                {title.length > 69 ? title.slice(0, 69) + '...' : title}
-              </h2>
+            <div
+              className="flex w-full flex-col justify-center space-y-4"
+              onClick={() => handleDoubleTap(post)}
+            >
+              <div className="-mt-8 px-4">
+                <h2 className={`${font} text-5xl`}>
+                  {title.length > 69 ? title.slice(0, 69) + '...' : title}
+                </h2>
 
-              <p className="font-lora mt-1 flex items-center gap-1 text-sm">
-                <Hourglass />
-                {calculateReadingTime(post.content)} min
+                <p className="font-lora mt-1 flex items-center gap-1 text-sm">
+                  <Hourglass />
+                  {calculateReadingTime(post.content)} min
+                </p>
+              </div>
+
+              <p className="font-lora px-4">
+                {post.preview.length > 350
+                  ? post.preview.slice(0, 350)
+                  : post.preview}
+                {post.preview.length > 350 && (
+                  <button onClick={() => handleReadMore(post)}>... more</button>
+                )}
               </p>
-            </div>
 
-            <p className="font-lora px-4">
-              {post.preview.length > 350
-                ? post.preview.slice(0, 350)
-                : post.preview}
-              {post.preview.length > 350 && (
-                <button onClick={() => handleReadMore(post)}>... more</button>
-              )}
-            </p>
-
-            <div className="motion-opacity-in motion-duration-1000 min-h-6">
-              <Marquee
-                autoFill={true}
-                speed={50}
-                gradient={true}
-                gradientColor="hsl(0 0% 3.9%)"
-                gradientWidth={35}
-              >
-                {post.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className={`mr-3 rounded-sm ${backgroundColor} px-2 py-1 ${textColor}`}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </Marquee>
+              <div className="motion-opacity-in motion-duration-1000 min-h-6">
+                <Marquee
+                  autoFill={true}
+                  speed={50}
+                  gradient={true}
+                  gradientColor="hsl(0 0% 3.9%)"
+                  gradientWidth={35}
+                >
+                  {post.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className={`mr-3 rounded-sm ${backgroundColor} px-2 py-1 ${textColor}`}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </Marquee>
+              </div>
             </div>
 
             <div className="motion-preset-slide-up motion-duration-1000 absolute bottom-8 z-[1000] flex w-full items-center justify-between px-4">
@@ -604,6 +631,42 @@ export default function Posts({
           </section>
         );
       })}
+
+      {!hasNextPage && (
+        <section
+          ref={endOfPostsRef}
+          className="flex h-[100dvh] snap-start snap-always flex-col items-center justify-center px-4"
+        >
+          <AnimatePresence>
+            {showConfetti && (
+              <motion.div
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 2 }}
+              >
+                <Confetti
+                  width={window.innerWidth}
+                  height={window.innerHeight}
+                  numberOfPieces={250}
+                  gravity={0.1}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="space-y-2 text-center">
+            <h2 className="text-4xl font-bold">You've reached the end</h2>
+            <p className="text-lg text-neutral-400">
+              {type === 'bookmark'
+                ? 'This was all the bookmarks you saved'
+                : type === 'like'
+                  ? 'This was all the vibes you liked'
+                  : 'Change the filter to see more vibes'}
+            </p>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

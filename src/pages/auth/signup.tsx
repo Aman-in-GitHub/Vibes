@@ -18,6 +18,57 @@ import {
   InputOTPSlot
 } from '@/components/ui/input-otp';
 import { db } from '@/lib/dexie';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle
+} from '@/components/ui/drawer';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+const terms = `
+**1. Agreement to Terms:** By accessing and using Vibes, you agree to these Terms and Conditions. If you disagree, do not use Vibes.
+
+**2. Service Description:** Vibes is a book reading application that aggregates content from various online platforms. We strive to provide a diverse reading experience.
+
+**3. Content & Usage:**
+**"As Is" Content:** Content on Vibes is provided "as is" and we do not guarantee its accuracy, completeness, or legality.
+
+**Personal Use:** Vibes is for your personal, non-commercial use only.
+
+**Respectful Use:** Use Vibes responsibly and legally. Do not misuse or disrupt the service.
+
+**4. Adult Content (NSFW):**
+**Optional Access:** Vibes may offer access to adult-themed content ("NSFW").
+
+**Age Verification (Implied):** By choosing to view NSFW content, you confirm you are of legal age in your jurisdiction to view adult material.
+
+**Explicit Consent:** You must explicitly consent to view NSFW content. This is a conscious choice you make.
+
+**No Objections Allowed:** **By agreeing to view NSFW content, you irrevocably waive any right to object to its nature, content, or exposure.** You acknowledge that you were warned and chose to proceed.
+
+**Your Responsibility:** Viewing NSFW content is entirely at your own discretion and risk. We are not responsible for the nature of the NSFW content itself.
+
+**5. Intellectual Property:** Content on Vibes is sourced from various platforms. We do not claim ownership of external content. Respect copyright laws and the rights of content creators.
+
+**6. Disclaimer of Warranties:** Vibes is provided without warranties of any kind, express or implied. We do not guarantee uninterrupted service, error-free operation, or content suitability.
+
+**7. Limitation of Liability:** To the maximum extent permitted by law, Vibes (and its operators) will not be liable for any indirect, incidental, consequential, or punitive damages arising from your use of Vibes, including but not limited to content issues or exposure.
+
+**8. Indemnification:** You agree to indemnify and hold Vibes harmless from any claims, losses, or liabilities arising from your use of Vibes or violation of these Terms.
+
+**9. Termination:** We may terminate your access to Vibes at any time, for any reason, without notice.
+
+**10. Changes to Terms:** We may update these Terms at any time. Continued use after changes means you accept the updated Terms.
+
+**11. Contact:** For any questions, please contact me via [mail](mailto:amanchandinc@gmail.com).
+
+**TLDR**: _Use Vibes legally and responsibly. NSFW content is optional and comes with a "no complaints" policy if you choose to view it. Vibes is not responsible for content or issues arising from use._
+`;
 
 const SignUpSchema = z.object({
   email: z
@@ -39,6 +90,8 @@ function SignUp() {
   const [otp, setOtp] = useState('');
   const [screen, setScreen] = useState<'signup' | 'otp'>('signup');
   const { isAuthenticated, isLoading } = useAuth();
+  const [hasReadTerms, setHasReadTerms] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const {
     control,
     register,
@@ -68,12 +121,17 @@ function SignUp() {
 
   if (isAuthenticated) {
     if (!isSubmitSuccessful) {
-      toast.warning('You’re already logged in. Redirecting to your feed');
+      toast.warning('You’re already logged in. Redirecting');
     }
     return <Navigate to="/" replace={true} />;
   }
 
   async function onSignUp(data: SignUpFormData) {
+    if (!hasReadTerms) {
+      toast.error('You must read all the terms to continue');
+      setIsDrawerOpen(true);
+      return;
+    }
     try {
       const { data: emailExists, error } = await supabase.rpc(
         'does_email_exist',
@@ -132,8 +190,6 @@ function SignUp() {
         throw seedError;
       }
 
-      toast.success('Welcome to Vibes');
-
       await db.users.clear();
       await db.likes.clear();
       await db.bookmarks.clear();
@@ -149,8 +205,11 @@ function SignUp() {
         readPosts: []
       });
 
+      toast.success('Welcome to Vibes');
+
       reset();
       setOtp('');
+      setHasReadTerms(false);
       return <Navigate to="/" replace={true} />;
     } catch (error) {
       console.error('OTP Verification Error:', error);
@@ -296,12 +355,56 @@ function SignUp() {
                   )}
                 />
 
-                {/* TODO: Add terms and conditions dialog */}
                 <Label className="leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  I have read and agree to the{' '}
-                  <span className="text-blue-600 underline underline-offset-2">
-                    terms and conditions
-                  </span>
+                  I have read and agree to all the{' '}
+                  <Drawer
+                    open={isDrawerOpen}
+                    onClose={() => setIsDrawerOpen(false)}
+                  >
+                    <span
+                      className="text-blue-600 underline underline-offset-2"
+                      onClick={() => setIsDrawerOpen(true)}
+                    >
+                      terms and conditions
+                    </span>
+                    <DrawerContent>
+                      <DrawerHeader>
+                        <DrawerTitle className="text-center">
+                          Terms & Conditions - Vibes
+                        </DrawerTitle>
+                        <DrawerDescription className="-mb-6 h-[60dvh] overflow-y-auto">
+                          <Markdown
+                            components={{
+                              p: ({ node, ...props }) => (
+                                <p {...props} className="mb-2 text-lg" />
+                              ),
+                              a: ({ node, ...props }) => (
+                                <a
+                                  {...props}
+                                  className={`cursor-pointer text-white underline decoration-rose-600 underline-offset-2`}
+                                />
+                              )
+                            }}
+                            remarkPlugins={[remarkGfm]}
+                          >
+                            {terms}
+                          </Markdown>
+                        </DrawerDescription>
+                      </DrawerHeader>
+                      <DrawerFooter className="">
+                        <DrawerClose className="w-full">
+                          <button
+                            onClick={() => {
+                              setHasReadTerms(true);
+                            }}
+                            className="w-full rounded-xs bg-rose-600 py-3 text-lg"
+                          >
+                            I have read all the terms
+                          </button>
+                        </DrawerClose>
+                      </DrawerFooter>
+                    </DrawerContent>
+                  </Drawer>
                 </Label>
               </div>
 
