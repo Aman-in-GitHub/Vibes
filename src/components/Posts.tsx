@@ -466,7 +466,7 @@ export default function Posts({
             {type === 'bookmark'
               ? 'Bookmarks'
               : type === 'like'
-                ? 'Your likes'
+                ? 'Favorites'
                 : 'Feed'}
           </h1>
         </div>
@@ -519,7 +519,7 @@ export default function Posts({
       {type === 'like' && (
         <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
           <Left className="text-3xl" onClick={() => navigate('/feed')} />
-          <h1 className="font-geist text-4xl font-bold">Your likes</h1>
+          <h1 className="font-geist text-4xl font-bold">Favorites</h1>
         </div>
       )}
 
@@ -661,7 +661,7 @@ export default function Posts({
               {type === 'bookmark'
                 ? 'This was all the bookmarks you saved'
                 : type === 'like'
-                  ? 'This was all the vibes you liked'
+                  ? 'This was all of your favorite vibes'
                   : 'Change the filter to see more vibes'}
             </p>
           </div>

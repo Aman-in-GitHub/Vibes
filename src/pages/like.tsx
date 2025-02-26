@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 export default function Likes() {
   useEffect(() => {
-    document.title = 'Your Likes - Vibes';
+    document.title = 'Favorites - Vibes';
   }, []);
 
   return <Posts type="like" />;

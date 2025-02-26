@@ -146,7 +146,7 @@ async function syncLocalDatabaseWithSupabase() {
       }));
 
       await db.likes.bulkPut(formattedLikes);
-      toast.info('Synced your likes with the database');
+      toast.info('Synced your favorites with the database');
     }
   } catch (error) {
     console.error('Error during sync check:', error);
@@ -220,8 +220,8 @@ function App() {
       to: '/bookmarks'
     },
     {
-      from: ['/liked', '/like'],
-      to: '/likes'
+      from: ['/liked', '/like', '/likes', 'favorite'],
+      to: '/favorites'
     }
   ];
 
@@ -230,7 +230,7 @@ function App() {
       <Route index element={<Index />} />
       <Route path="/feed" element={<Feed />} />
       <Route path="/bookmarks" element={<Bookmarks />} />
-      <Route path="/likes" element={<Likes />} />
+      <Route path="/favorites" element={<Likes />} />
       <Route path="/vibe/:id" element={<Vibe />} />
 
       {/* Authentication redirects */}

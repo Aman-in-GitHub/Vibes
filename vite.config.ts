@@ -59,6 +59,26 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         orientation: 'portrait',
+        shortcuts: [
+          {
+            name: 'For You Page',
+            short_name: 'For You Page',
+            description: 'Vibes cooked up just for you 🧑‍🍳',
+            url: '/feed'
+          },
+          {
+            name: 'Bookmarks',
+            short_name: 'Bookmarks',
+            description: 'Your secret treasure chest 💰',
+            url: '/bookmarks'
+          },
+          {
+            name: 'Favorites',
+            short_name: 'Favorites',
+            description: 'Your absolute faves ✨',
+            url: '/favorites'
+          }
+        ],
         icons: [
           {
             src: 'pwa-64x64.png',
