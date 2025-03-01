@@ -12,7 +12,8 @@ import {
   PiCaretLeft as Left,
   PiScroll as Scroll,
   PiArrowUpRight as Link,
-  PiWarning as Warning
+  PiWarning as Warning,
+  PiWifiSlash as Offline
 } from 'react-icons/pi';
 import { v4 as uuidv4 } from 'uuid';
 import Marquee from 'react-fast-marquee';
@@ -28,7 +29,7 @@ import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
 import Loader from '@/components/Loader';
-import { db, UserType } from '@/lib/dexie';
+import { db } from '@/lib/dexie';
 import { useIsOnline } from '@/hooks/useIsOnline';
 import { useInView } from 'react-intersection-observer';
 import Confetti from 'react-confetti';
@@ -51,6 +52,8 @@ import {
 } from '@/components/ui/dialog';
 import { DialogClose } from '@radix-ui/react-dialog';
 import useAuth from '@/hooks/useAuth';
+import { useUserStore } from '@/context/UserStore';
+import { useColorStore } from '@/context/ColorStore';
 
 const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 6;
@@ -181,6 +184,8 @@ export default function Posts({
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const user = useUserStore.getState().user;
+  const color = useColorStore.getState().color;
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(true);
@@ -193,11 +198,6 @@ export default function Posts({
     threshold: 0.75,
     triggerOnce: true
   });
-
-  const user = useLiveQuery(async () => {
-    const user = await getCurrentUser();
-    return user as UserType;
-  }, []);
 
   const bookmarkedPosts = useLiveQuery(
     async () => {
@@ -420,6 +420,7 @@ export default function Posts({
   if (isOffline && type === 'feed') {
     return (
       <section className="motion-opacity-in motion-duration-1000 flex h-[100dvh] flex-col items-center justify-center gap-4 px-4 text-center">
+        <Offline className="mx-auto text-8xl" />
         <h1 className="font-geist text-4xl font-bold">
           You are currently offline.
         </h1>
@@ -517,7 +518,7 @@ export default function Posts({
     >
       {type === 'feed' && (
         <Avatar
-          className="outline-muted motion-preset-blur-left motion-opacity-in motion-duration-1000 fixed top-4 right-4 z-[100] outline-2"
+          className="motion-preset-blur-left motion-opacity-in motion-duration-1000 fixed top-4 right-4 z-[100] cursor-pointer text-white"
           onClick={() => {
             if (!user) {
               setIsCreateAccountOpen(true);
@@ -529,11 +530,16 @@ export default function Posts({
         >
           {user?.avatarUrl && <AvatarImage src={user?.avatarUrl} />}
 
-          <AvatarFallback className="bg-muted/70 text-white backdrop-blur-sm">
+          <AvatarFallback
+            style={{
+              backgroundColor: color || '#111111'
+            }}
+          >
             {user ? user.name.charAt(0).toUpperCase() : '?'}
           </AvatarFallback>
         </Avatar>
       )}
+
       <Drawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
         <DrawerContent className="px-0">
           <DrawerHeader>
@@ -573,7 +579,7 @@ export default function Posts({
       >
         <DialogContent className="border-green-900 bg-[#05250a] px-6">
           <DialogHeader>
-            <DialogTitle className="text-xl">Log in | Sign up</DialogTitle>
+            <DialogTitle className="text-xl">Log in or Sign up</DialogTitle>
             <DialogDescription>
               Once you log in or create a new account you can like & save vibes.
               NSFW content is also available to logged in users only & you can

@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/input-otp';
 import { db } from '@/lib/dexie';
 import { PostType } from '@/components/Posts';
+import { useUserStore } from '@/context/UserStore';
+import { useColorStore } from '@/context/ColorStore';
 
 const SignInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email')
@@ -29,6 +31,9 @@ function SignIn() {
   const [otp, setOtp] = useState('');
   const [screen, setScreen] = useState<'otp' | 'signin'>('signin');
   const { isAuthenticated, isLoading } = useAuth();
+  const setUser = useUserStore.getState().setUser;
+  const clearUser = useUserStore.getState().clearUser;
+  const clearColor = useColorStore.getState().clearColor;
   const { register, handleSubmit, getValues, formState, reset } =
     useForm<SignInFormData>({
       resolver: zodResolver(SignInSchema),
@@ -111,6 +116,8 @@ function SignIn() {
       await db.users.clear();
       await db.likes.clear();
       await db.bookmarks.clear();
+      clearUser();
+      clearColor();
 
       const { data: bookmarksWithPosts, error: bookmarkError } = await supabase
         .from('bookmarks')
@@ -172,7 +179,7 @@ function SignIn() {
         await db.likes.bulkPut(formattedLikes);
       }
 
-      await db.users.put({
+      const localUser = {
         id: user.auth_id,
         name: user.name,
         email: user.email,
@@ -182,7 +189,10 @@ function SignIn() {
         isNsfw: user.is_nsfw,
         scrolledPosts: user.scrolled_posts || [],
         readPosts: user.read_posts || []
-      });
+      };
+
+      await db.users.put(localUser);
+      setUser(localUser);
 
       toast.success('OTP verified successfully', {
         duration: 3000

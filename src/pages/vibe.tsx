@@ -13,13 +13,14 @@ import {
 } from 'react-icons/pi';
 import { handleBookmark, handleLike, PostType } from '@/components/Posts';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/dexie';
+import { db, UserType } from '@/lib/dexie';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Loader from '@/components/Loader';
 import { toast } from 'sonner';
 import { useIsOnline } from '@/hooks/useIsOnline';
 import useAuth from '@/hooks/useAuth';
+import { useUserStore } from '@/context/UserStore';
 
 export default function Vibe() {
   const { isOffline } = useIsOnline();
@@ -27,6 +28,7 @@ export default function Vibe() {
   const location = useLocation();
   const { id } = useParams();
   const [post, setPost] = useState<PostType>(location.state?.post ?? null);
+  const setUser = useUserStore.getState().setUser;
 
   useEffect(() => {
     if (!isAuthenticated || !post) return;
@@ -48,6 +50,8 @@ export default function Vibe() {
           .eq('auth_id', user.id);
 
         await db.users.update(user.id, { readPosts: updatedReadPosts });
+        const updatedUser = await db.users.get(user.id);
+        setUser(updatedUser as UserType);
       } catch (error) {
         console.error('Error updating read posts:', error);
       }

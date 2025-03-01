@@ -32,6 +32,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { AnimatePresence, motion } from 'motion/react';
 import Confetti from 'react-confetti';
+import { useUserStore } from '@/context/UserStore';
+import { useColorStore } from '@/context/ColorStore';
 
 const terms = `
 **1. Agreement to Terms:** By accessing and using Vibes, you agree to these Terms and Conditions. If you disagree, do not use Vibes.
@@ -96,6 +98,9 @@ function SignUp() {
   const [hasReadTerms, setHasReadTerms] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const setUser = useUserStore.getState().setUser;
+  const clearUser = useUserStore.getState().clearUser;
+  const clearColor = useColorStore.getState().clearColor;
   const {
     control,
     register,
@@ -207,8 +212,10 @@ function SignUp() {
       await db.users.clear();
       await db.likes.clear();
       await db.bookmarks.clear();
+      clearUser();
+      clearColor();
 
-      await db.users.put({
+      const localUser = {
         id: data[0].auth_id,
         name: getValues('name'),
         email: getValues('email'),
@@ -218,7 +225,10 @@ function SignUp() {
         isNsfw: getValues('isNsfw') || false,
         scrolledPosts: [],
         readPosts: []
-      });
+      };
+
+      await db.users.put(localUser);
+      setUser(localUser);
 
       toast.success('Welcome to Vibes', {
         duration: 5000

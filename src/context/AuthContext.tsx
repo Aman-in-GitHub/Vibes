@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { db } from '@/lib/dexie';
+import { useUserStore } from '@/context/UserStore';
+import { useColorStore } from '@/context/ColorStore';
 
 export interface AuthState {
   user: User | null;
@@ -23,6 +25,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const clearUser = useUserStore.getState().clearUser;
+  const clearColor = useColorStore.getState().clearColor;
 
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -39,6 +43,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     await db.users.clear();
     await db.likes.clear();
     await db.bookmarks.clear();
+    clearUser();
+    clearColor();
 
     try {
       await supabase.auth.signOut();

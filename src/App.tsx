@@ -14,8 +14,21 @@ import { supabase } from '@/lib/supabase';
 import { db } from '@/lib/dexie';
 import { PostType } from '@/components/Posts';
 import useAuth from '@/hooks/useAuth';
+import { useUserStore } from '@/context/UserStore';
+import { useColorStore } from '@/context/ColorStore';
+import { getRandomColor } from '@/utils';
 
 async function syncLocalDatabaseWithSupabase() {
+  const color = useColorStore.getState().color;
+  const setColor = useColorStore.getState().setColor;
+  const setUser = useUserStore.getState().setUser;
+  const clearUser = useUserStore.getState().clearUser;
+  const clearColor = useColorStore.getState().clearColor;
+
+  if (!color) {
+    setColor(getRandomColor());
+  }
+
   try {
     const {
       data: { user },
@@ -55,7 +68,10 @@ async function syncLocalDatabaseWithSupabase() {
       }
 
       await db.users.clear();
-      await db.users.put({
+      clearUser();
+      clearColor();
+
+      const localUser = {
         id: profileData.auth_id,
         name: profileData.name,
         email: profileData.email,
@@ -65,7 +81,10 @@ async function syncLocalDatabaseWithSupabase() {
         isNsfw: profileData.is_nsfw,
         scrolledPosts: profileData.scrolled_posts || [],
         readPosts: profileData.read_posts || []
-      });
+      };
+
+      await db.users.put(localUser);
+      setUser(localUser);
 
       toast.info('Synced your profile with the database');
     }
