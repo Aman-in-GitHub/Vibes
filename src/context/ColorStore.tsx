@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface ColorStore {
+type ColorStore = {
   color: string;
   setColor: (color: string) => void;
   clearColor: () => void;
-}
+};
 
 export const useColorStore = create<ColorStore>()(
   persist(

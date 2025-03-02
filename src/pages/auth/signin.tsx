@@ -20,6 +20,7 @@ import { db } from '@/lib/dexie';
 import { PostType } from '@/components/Posts';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
+import { getRandomColor } from '@/utils';
 
 const SignInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email')
@@ -33,6 +34,7 @@ function SignIn() {
   const { isAuthenticated, isLoading } = useAuth();
   const setUser = useUserStore.getState().setUser;
   const clearUser = useUserStore.getState().clearUser;
+  const setColor = useColorStore.getState().setColor;
   const clearColor = useColorStore.getState().clearColor;
   const { register, handleSubmit, getValues, formState, reset } =
     useForm<SignInFormData>({
@@ -195,11 +197,12 @@ function SignIn() {
       setUser(localUser);
 
       toast.success('OTP verified successfully', {
-        duration: 3000
+        duration: 5000
       });
 
       reset();
       setOtp('');
+      setColor(getRandomColor());
 
       return <Navigate to="/" replace={true} />;
     } catch (error) {

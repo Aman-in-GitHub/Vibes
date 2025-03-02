@@ -34,6 +34,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import Confetti from 'react-confetti';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
+import { getRandomColor } from '@/utils';
 
 const terms = `
 **1. Agreement to Terms:** By accessing and using Vibes, you agree to these Terms and Conditions. If you disagree, do not use Vibes.
@@ -100,6 +101,7 @@ function SignUp() {
   const [showConfetti, setShowConfetti] = useState(false);
   const setUser = useUserStore.getState().setUser;
   const clearUser = useUserStore.getState().clearUser;
+  const setColor = useColorStore.getState().setColor;
   const clearColor = useColorStore.getState().clearColor;
   const {
     control,
@@ -238,6 +240,8 @@ function SignUp() {
       setOtp('');
       setHasReadTerms(false);
       setShowConfetti(true);
+      setColor(getRandomColor());
+
       return <Navigate to="/" replace={true} />;
     } catch (error) {
       console.error('OTP Verification Error:', error);

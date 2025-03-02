@@ -66,15 +66,12 @@ export async function getCurrentUser(): Promise<UserType | null> {
 
 export function getRandomColor() {
   const colors = [
-    '#dd7878',
     '#ea76cb',
     '#8839ef',
     '#d20f39',
     '#e64553',
     '#fe640b',
-    '#df8e1d',
     '#40a02b',
-    '#179299',
     '#1e66f5',
     '#7287fd'
   ];

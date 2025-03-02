@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router';
 import {
   PiHourglass as Hourglass,
@@ -54,10 +54,11 @@ import { DialogClose } from '@radix-ui/react-dialog';
 import useAuth from '@/hooks/useAuth';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
+import { useTypeStore } from '@/context/TypeStore';
 
 const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 6;
-const POST_TYPES = ['horror', 'nsfw'];
+const POST_TYPES = ['horror', 'nsfw', 'funny'];
 
 export type PostType = {
   id: string;
@@ -184,8 +185,11 @@ export default function Posts({
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const user = useUserStore.getState().user;
   const color = useColorStore.getState().color;
+  const vibeType = useTypeStore.getState().vibeType;
+  const setVibeType = useTypeStore.getState().setVibeType;
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(true);
@@ -302,9 +306,10 @@ export default function Posts({
     fetchNextPage,
     hasNextPage = true,
     isFetchingNextPage,
-    status
+    status,
+    refetch
   } = useInfiniteQuery({
-    queryKey: ['posts', 'feed'],
+    queryKey: ['posts', 'feed', vibeType],
     queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < POSTS_PER_PAGE) {
@@ -315,6 +320,12 @@ export default function Posts({
     initialPageParam: 0,
     enabled: type === 'feed' && !isOffline
   });
+
+  useEffect(() => {
+    queryClient.removeQueries();
+    queryClient.invalidateQueries();
+    refetch();
+  }, [vibeType]);
 
   useEffect(() => {
     if (!hasNextPage && isEndOfPostsVisible) {
@@ -367,11 +378,25 @@ export default function Posts({
     const from = pageParam * POSTS_PER_PAGE;
     const to = from + POSTS_PER_PAGE - 1;
 
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .range(from, to)
-      .order('title', { ascending: true });
+    let supabaseQuery = supabase.from('posts').select('*').range(from, to);
+
+    if (vibeType === 'random') {
+    } else if (vibeType === 'quickie') {
+      const { data, error } = await supabase.rpc('get_short_posts', {
+        offset_param: from,
+        limit_param: POSTS_PER_PAGE
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } else {
+      supabaseQuery = supabaseQuery.eq('type', vibeType);
+    }
+
+    const { data, error } = await supabaseQuery;
 
     if (error) {
       throw error;
@@ -516,10 +541,27 @@ export default function Posts({
         WebkitOverflowScrolling: 'touch'
       }}
     >
+      {type === 'bookmark' && (
+        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
+          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
+          <h1 className="font-geist text-4xl font-bold">Bookmarks</h1>
+        </div>
+      )}
+
+      {type === 'like' && (
+        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
+          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
+          <h1 className="font-geist text-4xl font-bold">Favorites</h1>
+        </div>
+      )}
+
       {type === 'feed' && (
         <Avatar
-          className="motion-preset-blur-left motion-opacity-in motion-duration-1000 fixed top-4 right-4 z-[100] cursor-pointer text-white"
+          className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-4 z-[100] cursor-pointer text-white"
           onClick={() => {
+            if (navigator.vibrate) {
+              navigator.vibrate(100);
+            }
             if (!user) {
               setIsCreateAccountOpen(true);
               return;
@@ -548,13 +590,56 @@ export default function Posts({
             </DrawerTitle>
           </DrawerHeader>
           <DrawerFooter className="gap-0 px-0 py-0">
-            <button
-              className="flex w-full items-center justify-between bg-blue-600 px-4 py-4 text-xl duration-300 active:bg-blue-500"
-              onClick={() => navigate('/bookmarks')}
-            >
-              Your Bookmarks
-              <Link className="text-3xl text-blue-200" />
-            </button>
+            <div className="px-2 pb-2">
+              <h4 className="font-lora mb-1 text-2xl font-semibold">Filter</h4>
+              <div className="flex items-center gap-2 overflow-x-auto text-lg">
+                <button
+                  className={`rounded-full bg-pink-600 px-4 py-2 ${vibeType !== 'random' && 'grayscale'}`}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setVibeType('random');
+                  }}
+                >
+                  @random
+                </button>
+                <button
+                  className={`rounded-full bg-emerald-600 px-4 py-2 ${vibeType !== 'quickie' && 'grayscale'}`}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setVibeType('quickie');
+                  }}
+                >
+                  @quickie
+                </button>
+                <button
+                  className={`rounded-full bg-red-600 px-4 py-2 ${vibeType !== 'horror' && 'grayscale'}`}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setVibeType('horror');
+                  }}
+                >
+                  @horror
+                </button>
+                <button
+                  className={`rounded-full bg-purple-600 px-4 py-2 ${vibeType !== 'nsfw' && 'grayscale'}`}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setVibeType('nsfw');
+                  }}
+                >
+                  @nsfw
+                </button>
+                <button
+                  className={`rounded-full bg-orange-600 px-4 py-2 ${vibeType !== 'funny' && 'grayscale'}`}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setVibeType('funny');
+                  }}
+                >
+                  @funny
+                </button>
+              </div>
+            </div>
             <button
               className="flex w-full items-center justify-between bg-rose-600 px-4 py-4 text-xl duration-300 active:bg-rose-500"
               onClick={() => navigate('/favorites')}
@@ -562,6 +647,14 @@ export default function Posts({
               Your Favorites
               <Link className="text-3xl text-rose-200" />
             </button>
+            <button
+              className="flex w-full items-center justify-between bg-blue-600 px-4 py-4 text-xl duration-300 active:bg-blue-500"
+              onClick={() => navigate('/bookmarks')}
+            >
+              Your Bookmarks
+              <Link className="text-3xl text-blue-200" />
+            </button>
+
             <button
               className="flex w-full items-center justify-between bg-red-950 px-4 py-4 text-xl text-red-500 duration-300"
               onClick={() => setIsDeleteAccountOpen(true)}
@@ -640,20 +733,6 @@ export default function Posts({
         </DialogContent>
       </Dialog>
 
-      {type === 'bookmark' && (
-        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
-          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
-          <h1 className="font-geist text-4xl font-bold">Bookmarks</h1>
-        </div>
-      )}
-
-      {type === 'like' && (
-        <div className="fixed top-0 z-[10000] flex h-20 w-full items-center gap-6 border-b-2 bg-[#111]/30 px-4 backdrop-blur-sm">
-          <Left className="text-3xl" onClick={() => navigate('/fyp')} />
-          <h1 className="font-geist text-4xl font-bold">Favorites</h1>
-        </div>
-      )}
-
       {posts.map((post) => {
         const { font, textColor, backgroundColor } = getPostTypeStyles(
           post.type
@@ -672,8 +751,8 @@ export default function Posts({
               onClick={() => handleDoubleTap(post)}
             >
               <div className="-mt-16 px-4">
-                <h2 className={`${font} text-5xl`}>
-                  {title.length > 69 ? title.slice(0, 69) + '...' : title}
+                <h2 className={`${font} text-4xl`}>
+                  {title.length > 200 ? title.slice(0, 200) + '...' : title}
                 </h2>
 
                 <div className="mt-1 flex items-center gap-2">
@@ -692,9 +771,9 @@ export default function Posts({
               </div>
 
               <p className="font-lora px-4">
-                {post.preview.length > 350
+                {post.content.length > 450
                   ? post.preview.slice(0, 350)
-                  : post.preview}
+                  : post.content}
                 {post.preview.length > 350 && (
                   <button onClick={() => handleReadMore(post)}>... more</button>
                 )}
@@ -747,7 +826,7 @@ export default function Posts({
                 )}
               </button>
 
-              {post.content.length > 500 ? (
+              {post.content.length > 450 ? (
                 <button
                   onClick={() => handleReadMore(post)}
                   className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
