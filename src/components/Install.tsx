@@ -1,16 +1,12 @@
-// @ts-nocheck
-
-import logo from '@/logo.svg';
-import { create } from 'zustand';
 import { useRef } from 'react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import {
   PiAppStoreLogo as AppStore,
   PiGooglePlayLogo as PlayStore
 } from 'react-icons/pi';
 import { isIOS } from 'react-device-detect';
 import { PWAInstallElement } from '@khmyznikov/pwa-install';
-
-import { persist } from 'zustand/middleware';
 
 type IsPWAInstalledStore = {
   isPWAInstalled: boolean;
@@ -48,13 +44,6 @@ function InstallButton({ onClick }: { onClick: () => void }) {
           <PlayStore className="text-3xl text-green-200" />
         )}
       </button>
-
-      <PWAInstallElement
-        ref={pwaInstallRef}
-        name={'Vibes'}
-        icon={logo}
-        disable-install-description={true}
-      />
     </>
   );
 }
