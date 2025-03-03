@@ -193,6 +193,7 @@ export default function Posts({
   const color = useColorStore((state) => state.color);
   const vibeType = useTypeStore((state) => state.vibeType);
   const setVibeType = useTypeStore((state) => state.setVibeType);
+  const isPWAInstalled = localStorage.getItem('vibes-pwa-installed') === 'true';
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(true);
@@ -586,6 +587,7 @@ export default function Posts({
               if (navigator.vibrate) {
                 navigator.vibrate(50);
               }
+
               if (!user) {
                 setIsCreateAccountOpen(true);
                 return;
@@ -605,12 +607,16 @@ export default function Posts({
             </AvatarFallback>
           </Avatar>
 
-          {!isAuthenticated && (
+          {!isAuthenticated && !isPWAInstalled && (
             <button
               className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-20 z-[100] cursor-pointer rounded-full bg-[#111111] p-3"
               onClick={() => {
+                if (navigator.vibrate) {
+                  navigator.vibrate(50);
+                }
+
                 // @ts-expect-error - PWA type error
-                document.getElementById('pwa-install')?.install();
+                document.getElementById('pwa-install')?.showDialog(true);
               }}
             >
               {isIOS ? (
