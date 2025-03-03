@@ -27,6 +27,7 @@
     "dexie-react-hooks": "^1.1.7",
     "input-otp": "^1.4.2",
     "motion": "^12.4.3",
+    "posthog-js": "^1.225.1",
     "react": "^19.0.0",
     "react-compiler-runtime": "19.0.0-beta-e1e972c-20250221",
     "react-confetti": "^6.2.3",
@@ -81,6 +82,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@swc/core",
+      "core-js",
       "esbuild",
       "sharp",
       "supabase"

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { toast } from 'sonner';
 import { BrowserRouter } from 'react-router';
+import { PostHogProvider } from 'posthog-js/react';
 import AuthProvider from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/sonner';
 import Error from '@/components/Error';
@@ -43,14 +44,21 @@ createRoot(document.getElementById('root')!).render(
       <Error error={error} reset={resetErrorBoundary} />
     )}
   >
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <PWAUpdater />
-          <App />
-          <Toaster richColors={true} position="top-center" duration={2000} />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_POSTHOG_KEY as string}
+      options={{
+        api_host: import.meta.env.VITE_POSTHOG_HOST as string
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <PWAUpdater />
+            <App />
+            <Toaster richColors={true} position="top-center" duration={2000} />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </PostHogProvider>
   </ErrorBoundary>
 );
