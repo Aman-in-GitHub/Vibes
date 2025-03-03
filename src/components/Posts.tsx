@@ -50,11 +50,12 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { DialogClose } from '@radix-ui/react-dialog';
+import { DialogClose } from '@/components/ui/dialog';
 import useAuth from '@/hooks/useAuth';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
 import { useTypeStore, VIBE_OPTIONS } from '@/context/TypeStore';
+import InstallButton from '@/components/Install';
 
 const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 6;
@@ -185,10 +186,10 @@ export default function Posts({
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const user = useUserStore.getState().user;
-  const color = useColorStore.getState().color;
-  const vibeType = useTypeStore.getState().vibeType;
-  const setVibeType = useTypeStore.getState().setVibeType;
+  const user = useUserStore((state) => state.user);
+  const color = useColorStore((state) => state.color);
+  const vibeType = useTypeStore((state) => state.vibeType);
+  const setVibeType = useTypeStore((state) => state.setVibeType);
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(true);
@@ -660,6 +661,8 @@ export default function Posts({
               Log out
               <Warning className="text-3xl text-red-500" />
             </button>
+
+            <InstallButton onClick={() => setIsDrawerOpen(false)} />
           </DrawerFooter>
         </DrawerContent>
       </Drawer>

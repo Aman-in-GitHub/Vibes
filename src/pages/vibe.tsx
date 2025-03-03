@@ -28,7 +28,7 @@ export default function Vibe() {
   const location = useLocation();
   const { id } = useParams();
   const [post, setPost] = useState<PostType>(location.state?.post ?? null);
-  const setUser = useUserStore.getState().setUser;
+  const setUser = useUserStore((state) => state.setUser);
 
   useEffect(() => {
     if (!isAuthenticated || !post) return;

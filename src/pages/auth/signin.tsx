@@ -32,10 +32,10 @@ function SignIn() {
   const [otp, setOtp] = useState('');
   const [screen, setScreen] = useState<'otp' | 'signin'>('signin');
   const { isAuthenticated, isLoading } = useAuth();
-  const setUser = useUserStore.getState().setUser;
-  const clearUser = useUserStore.getState().clearUser;
-  const setColor = useColorStore.getState().setColor;
-  const clearColor = useColorStore.getState().clearColor;
+  const setUser = useUserStore((state) => state.setUser);
+  const clearUser = useUserStore((state) => state.clearUser);
+  const setColor = useColorStore((state) => state.setColor);
+  const clearColor = useColorStore((state) => state.clearColor);
   const { register, handleSubmit, getValues, formState, reset } =
     useForm<SignInFormData>({
       resolver: zodResolver(SignInSchema),

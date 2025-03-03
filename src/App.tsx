@@ -17,6 +17,7 @@ import useAuth from '@/hooks/useAuth';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
 import { getRandomColor } from '@/utils';
+import { isMobile } from 'react-device-detect';
 
 async function syncLocalDatabaseWithSupabase() {
   const color = useColorStore.getState().color;
@@ -175,8 +176,19 @@ async function syncLocalDatabaseWithSupabase() {
 }
 
 function App() {
-  const { isOffline, wasOffline, isOnline } = useIsOnline();
   const { isAuthenticated } = useAuth();
+  const { isOffline, wasOffline, isOnline } = useIsOnline();
+
+  if (!isMobile) {
+    return (
+      <main className="flex h-screen flex-col items-center justify-center bg-white px-4 text-xl text-black">
+        <h1 className="text-center">
+          <span className="font-lora text-5xl">Vibes</span> is currently only
+          available on mobile devices.
+        </h1>
+      </main>
+    );
+  }
 
   useEffect(() => {
     if (isAuthenticated && isOnline) {

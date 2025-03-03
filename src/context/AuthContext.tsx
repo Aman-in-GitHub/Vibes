@@ -25,8 +25,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  const clearUser = useUserStore.getState().clearUser;
-  const clearColor = useColorStore.getState().clearColor;
+  const clearUser = useUserStore((state) => state.clearUser);
+  const clearColor = useColorStore((state) => state.clearColor);
 
   const [authState, setAuthState] = useState<AuthState>({
     user: null,

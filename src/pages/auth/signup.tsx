@@ -99,10 +99,10 @@ function SignUp() {
   const [hasReadTerms, setHasReadTerms] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const setUser = useUserStore.getState().setUser;
-  const clearUser = useUserStore.getState().clearUser;
-  const setColor = useColorStore.getState().setColor;
-  const clearColor = useColorStore.getState().clearColor;
+  const setUser = useUserStore((state) => state.setUser);
+  const clearUser = useUserStore((state) => state.clearUser);
+  const setColor = useColorStore((state) => state.setColor);
+  const clearColor = useColorStore((state) => state.clearColor);
   const {
     control,
     register,
