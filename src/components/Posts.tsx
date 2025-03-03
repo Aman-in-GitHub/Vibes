@@ -13,7 +13,9 @@ import {
   PiScroll as Scroll,
   PiArrowUpRight as Link,
   PiWarning as Warning,
-  PiWifiSlash as Offline
+  PiWifiSlash as Offline,
+  PiAppStoreLogo as AppStore,
+  PiGooglePlayLogo as PlayStore
 } from 'react-icons/pi';
 import { v4 as uuidv4 } from 'uuid';
 import Marquee from 'react-fast-marquee';
@@ -56,6 +58,7 @@ import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
 import { useTypeStore, VIBE_OPTIONS } from '@/context/TypeStore';
 import InstallButton from '@/components/Install';
+import { isIOS } from 'react-device-detect';
 
 const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 6;
@@ -182,7 +185,7 @@ export default function Posts({
 }) {
   const currentPostIndex = useRef(0);
   const { isOffline } = useIsOnline();
-  const { signOut } = useAuth();
+  const { signOut, isAuthenticated } = useAuth();
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -576,30 +579,48 @@ export default function Posts({
       )}
 
       {type === 'feed' && (
-        <Avatar
-          className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-4 z-[100] cursor-pointer text-white"
-          onClick={() => {
-            if (navigator.vibrate) {
-              navigator.vibrate(50);
-            }
-            if (!user) {
-              setIsCreateAccountOpen(true);
-              return;
-            }
+        <>
+          <Avatar
+            className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-4 z-[100] cursor-pointer text-white"
+            onClick={() => {
+              if (navigator.vibrate) {
+                navigator.vibrate(50);
+              }
+              if (!user) {
+                setIsCreateAccountOpen(true);
+                return;
+              }
 
-            setIsDrawerOpen(true);
-          }}
-        >
-          {user?.avatarUrl && <AvatarImage src={user?.avatarUrl} />}
-
-          <AvatarFallback
-            style={{
-              backgroundColor: color || '#111111'
+              setIsDrawerOpen(true);
             }}
           >
-            {user ? user.name.charAt(0).toUpperCase() : '?'}
-          </AvatarFallback>
-        </Avatar>
+            {user?.avatarUrl && <AvatarImage src={user?.avatarUrl} />}
+
+            <AvatarFallback
+              style={{
+                backgroundColor: color || '#111111'
+              }}
+            >
+              {user ? user.name.charAt(0).toUpperCase() : '?'}
+            </AvatarFallback>
+          </Avatar>
+
+          {!isAuthenticated && (
+            <button
+              className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-20 z-[100] cursor-pointer rounded-full bg-[#111111] p-3"
+              onClick={() => {
+                // @ts-expect-error - PWA type error
+                document.getElementById('pwa-install')?.install();
+              }}
+            >
+              {isIOS ? (
+                <AppStore className="text-2xl" />
+              ) : (
+                <PlayStore className="text-2xl" />
+              )}
+            </button>
+          )}
+        </>
       )}
 
       <Drawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>

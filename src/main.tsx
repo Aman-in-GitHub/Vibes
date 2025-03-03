@@ -1,5 +1,6 @@
 import './index.css';
 import App from './App';
+import '@khmyznikov/pwa-install';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
