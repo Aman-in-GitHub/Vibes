@@ -6,74 +6,41 @@ import {
 import { isIOS } from 'react-device-detect';
 
 function InstallButton({ onClick }: { onClick: () => void }) {
-  const [isButtonVisible, setIsButtonVisible] = useState<boolean>(false);
-  const [isStandalone, setIsStandalone] = useState<boolean>(false);
-  const [hasInstalledRelatedApps, setHasInstalledRelatedApps] =
-    useState<boolean>(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    const checkStandalone = (): boolean => {
-      return (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.matchMedia('(display-mode: tabbed)').matches
-      );
-    };
-
-    setIsStandalone(checkStandalone());
-
-    async function checkInstalledApps() {
-      if ('getInstalledRelatedApps' in navigator) {
-        try {
-          const relatedApps = await (
-            navigator as any
-          ).getInstalledRelatedApps();
-          setHasInstalledRelatedApps(relatedApps.length > 0);
-        } catch (e) {
-          console.error('Error checking for installed related apps:', e);
-        }
-      }
-    }
-
-    checkInstalledApps();
-
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      (window as any).deferredPrompt = e;
-      setIsButtonVisible(true);
-    };
-
-    const handleAppInstalled = () => {
-      setIsButtonVisible(false);
-      (window as any).deferredPrompt = undefined;
+      setDeferredPrompt(e);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    setIsButtonVisible(
-      (window as any).deferredPrompt !== undefined ||
-        ('onbeforeinstallprompt' in window &&
-          !isStandalone &&
-          !hasInstalledRelatedApps)
-    );
 
     return () => {
       window.removeEventListener(
         'beforeinstallprompt',
         handleBeforeInstallPrompt
       );
-      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
-  function handleInstallClick() {
-    onClick();
-    if ((window as any).deferredPrompt) {
-      (window as any).deferredPrompt.prompt();
+  async function handleInstallClick() {
+    if (onClick) {
+      onClick();
+    }
+
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+
+      const { outcome } = await deferredPrompt.userChoice;
+
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
     }
   }
 
-  if (!isButtonVisible || isStandalone || hasInstalledRelatedApps) {
+  if (!deferredPrompt) {
     return null;
   }
 

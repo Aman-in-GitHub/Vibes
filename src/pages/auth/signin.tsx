@@ -20,7 +20,6 @@ import { db } from '@/lib/dexie';
 import { PostType } from '@/components/Posts';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
-import { getRandomColor } from '@/utils';
 
 const SignInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email')
@@ -34,7 +33,6 @@ function SignIn() {
   const { isAuthenticated, isLoading } = useAuth();
   const setUser = useUserStore((state) => state.setUser);
   const clearUser = useUserStore((state) => state.clearUser);
-  const setColor = useColorStore((state) => state.setColor);
   const clearColor = useColorStore((state) => state.clearColor);
   const { register, handleSubmit, getValues, formState, reset } =
     useForm<SignInFormData>({
@@ -202,7 +200,6 @@ function SignIn() {
 
       reset();
       setOtp('');
-      setColor(getRandomColor());
 
       return <Navigate to="/" replace={true} />;
     } catch (error) {

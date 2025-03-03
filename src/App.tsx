@@ -20,15 +20,9 @@ import { getRandomColor } from '@/utils';
 import { isMobile } from 'react-device-detect';
 
 async function syncLocalDatabaseWithSupabase() {
-  const color = useColorStore.getState().color;
-  const setColor = useColorStore.getState().setColor;
   const setUser = useUserStore.getState().setUser;
   const clearUser = useUserStore.getState().clearUser;
   const clearColor = useColorStore.getState().clearColor;
-
-  if (!color) {
-    setColor(getRandomColor());
-  }
 
   try {
     const {
@@ -178,6 +172,8 @@ async function syncLocalDatabaseWithSupabase() {
 function App() {
   const { isAuthenticated } = useAuth();
   const { isOffline, wasOffline, isOnline } = useIsOnline();
+  const color = useColorStore((state) => state.color);
+  const setColor = useColorStore((state) => state.setColor);
 
   if (!isMobile) {
     return (
@@ -191,6 +187,12 @@ function App() {
   }
 
   useEffect(() => {
+    if (isAuthenticated) {
+      if (!color) {
+        setColor(getRandomColor());
+      }
+    }
+
     if (isAuthenticated && isOnline) {
       syncLocalDatabaseWithSupabase();
     }
