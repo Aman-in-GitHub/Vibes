@@ -9,6 +9,10 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["vite-plugin-pwa/client"]
+    "types": [
+      "vite-plugin-pwa/client",
+      "dom-chromium-installation-events",
+      "web-app-manifest"
+    ]
   }
 }
