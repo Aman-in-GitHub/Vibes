@@ -1,48 +1,63 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   PiAppStoreLogo as AppStore,
   PiGooglePlayLogo as PlayStore
 } from 'react-icons/pi';
 import { isIOS } from 'react-device-detect';
+import { create } from 'zustand';
+
+import { persist } from 'zustand/middleware';
+
+type IsPWAInstalledStore = {
+  isPWAInstalled: boolean;
+  setIsPWAInstalled: (installed: boolean) => void;
+};
+
+export const useIsPWAInstalledStore = create(
+  persist<IsPWAInstalledStore>(
+    (set) => ({
+      isPWAInstalled: false,
+      setIsPWAInstalled: (installed) => set({ isPWAInstalled: installed })
+    }),
+    {
+      name: 'vibes-is-pwa-installed-store'
+    }
+  )
+);
 
 function InstallButton({ onClick }: { onClick: () => void }) {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const deferredPrompt = useRef<any>(null);
+  const isPWAInstalled = useIsPWAInstalledStore(
+    (state) => state.isPWAInstalled
+  );
+  const setIsPWAInstalled = useIsPWAInstalledStore(
+    (state) => state.setIsPWAInstalled
+  );
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
+    const handlePrompt = (e: any) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      deferredPrompt.current = e;
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    return () =>
+      window.removeEventListener('beforeinstallprompt', handlePrompt);
+  });
 
-    return () => {
-      window.removeEventListener(
-        'beforeinstallprompt',
-        handleBeforeInstallPrompt
-      );
-    };
-  }, []);
+  const handleInstallClick = () => {
+    onClick();
+    if (!deferredPrompt.current) return;
 
-  async function handleInstallClick() {
-    if (onClick) {
-      onClick();
-    }
-
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-
-      const { outcome } = await deferredPrompt.userChoice;
-
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
+    deferredPrompt.current.prompt();
+    deferredPrompt.current.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        setIsPWAInstalled(true);
       }
-    }
-  }
+    });
+  };
 
-  if (!deferredPrompt) {
-    return null;
-  }
+  if (isPWAInstalled) return null;
 
   return (
     <button

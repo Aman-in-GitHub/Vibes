@@ -1,3 +1,5 @@
+import 'tldraw/tldraw.css';
+import { Tldraw } from 'tldraw';
 import { Navigate, Route, Routes } from 'react-router';
 import SignIn from '@/pages/auth/signin';
 import SignUp from '@/pages/auth/signup';
@@ -177,11 +179,13 @@ function App() {
 
   if (!isMobile) {
     return (
-      <main className="flex h-screen flex-col items-center justify-center bg-white px-4 text-xl text-black">
-        <h1 className="text-center">
-          <span className="font-lora text-5xl">Vibes</span> is currently only
-          available on mobile devices.
+      <main className="flex h-screen flex-col items-center justify-center gap-2 bg-white pt-2 text-xl text-black">
+        <h1 className="px-4 text-center text-lg">
+          <span className="font-lora text-5xl">Vibes</span> is only available on
+          mobile devices. <span className="text-xs">(for now*)</span>
         </h1>
+
+        <Tldraw persistenceKey="vibes-tldraw-store" />
       </main>
     );
   }
