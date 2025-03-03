@@ -59,6 +59,7 @@ import { useColorStore } from '@/context/ColorStore';
 import { useTypeStore, VIBE_OPTIONS } from '@/context/TypeStore';
 import InstallButton from '@/components/Install';
 import { isIOS } from 'react-device-detect';
+import { useIsPWA } from '@/hooks/useIsPWA';
 
 const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 6;
@@ -193,6 +194,7 @@ export default function Posts({
   const color = useColorStore((state) => state.color);
   const vibeType = useTypeStore((state) => state.vibeType);
   const setVibeType = useTypeStore((state) => state.setVibeType);
+  const isPWA = useIsPWA();
   const isPWAInstalled = localStorage.getItem('vibes-pwa-installed') === 'true';
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -607,7 +609,7 @@ export default function Posts({
             </AvatarFallback>
           </Avatar>
 
-          {!isAuthenticated && !isPWAInstalled && (
+          {!isAuthenticated && !isPWAInstalled && !isPWA && (
             <button
               className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-20 z-[100] cursor-pointer rounded-full bg-[#111111] p-3"
               onClick={() => {

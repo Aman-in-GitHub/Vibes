@@ -3,11 +3,13 @@ import {
   PiGooglePlayLogo as PlayStore
 } from 'react-icons/pi';
 import { isIOS } from 'react-device-detect';
+import { useIsPWA } from '@/hooks/useIsPWA';
 
 function InstallButton({ onClick }: { onClick: () => void }) {
+  const isPWA = useIsPWA();
   const isPWAInstalled = localStorage.getItem('vibes-pwa-installed') === 'true';
 
-  if (isPWAInstalled) return null;
+  if (isPWA || isPWAInstalled) return null;
 
   return (
     <>

@@ -69,10 +69,6 @@
     <script type="text/javascript">
       var pwaInstall = document.getElementsByTagName('pwa-install')[0];
 
-      pwaInstall.addEventListener('pwa-install-available-event', (event) => {
-        localStorage.setItem('vibes-pwa-installed', 'false');
-      });
-
       pwaInstall.addEventListener('pwa-install-success-event', (event) => {
         localStorage.setItem('vibes-pwa-installed', 'true');
       });
