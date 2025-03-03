@@ -5,9 +5,9 @@ import {
 import { isIOS } from 'react-device-detect';
 
 function InstallButton({ onClick }: { onClick: () => void }) {
-  const isInstalled = localStorage.getItem('vibes-pwa-installed') === 'true';
+  const isPWAInstalled = localStorage.getItem('vibes-pwa-installed') === 'true';
 
-  if (isInstalled) return null;
+  if (isPWAInstalled) return null;
 
   return (
     <>
