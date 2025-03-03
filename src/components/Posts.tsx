@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router';
 import {
   PiHourglass as Hourglass,
@@ -54,7 +54,7 @@ import { DialogClose } from '@radix-ui/react-dialog';
 import useAuth from '@/hooks/useAuth';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
-import { useTypeStore } from '@/context/TypeStore';
+import { useTypeStore, VIBE_OPTIONS } from '@/context/TypeStore';
 
 const POSTS_PER_PAGE = 12;
 const POSTS_BEFORE_FETCH = 6;
@@ -185,7 +185,6 @@ export default function Posts({
   const mainRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const user = useUserStore.getState().user;
   const color = useColorStore.getState().color;
   const vibeType = useTypeStore.getState().vibeType;
@@ -322,8 +321,6 @@ export default function Posts({
   });
 
   useEffect(() => {
-    queryClient.removeQueries();
-    queryClient.invalidateQueries();
     refetch();
   }, [vibeType]);
 
@@ -442,6 +439,12 @@ export default function Posts({
     posts = likedPosts;
   }
 
+  const sortedVibeTypes = [...VIBE_OPTIONS].sort((a, b) => {
+    if (a === vibeType) return -1;
+    if (b === vibeType) return 1;
+    return 0;
+  });
+
   if (isOffline && type === 'feed') {
     return (
       <section className="motion-opacity-in motion-duration-1000 flex h-[100dvh] flex-col items-center justify-center gap-4 px-4 text-center">
@@ -517,8 +520,9 @@ export default function Posts({
               ? 'No bookmarked vibes yet'
               : type === 'like'
                 ? 'No liked vibes yet'
-                : 'No vibes available'}
+                : `No ${vibeType !== 'random' ? vibeType : ''} vibes available`}
           </h2>
+
           <p className="text-neutral-400">
             {type === 'bookmark'
               ? 'Double-tap on any vibe to bookmark it'
@@ -526,6 +530,21 @@ export default function Posts({
                 ? 'Tap the heart icon to like a vibe'
                 : 'The world is ending. Try again later'}
           </p>
+
+          {type === 'feed' && vibeType !== 'random' && (
+            <p className="absolute bottom-16 left-1/2 w-full -translate-x-1/2 text-lg">
+              Change the filter to{' '}
+              <span
+                className="font-lora underline underline-offset-2"
+                onClick={() => {
+                  setVibeType('random');
+                  window.location.reload();
+                }}
+              >
+                random
+              </span>
+            </p>
+          )}
         </div>
       </section>
     );
@@ -560,7 +579,7 @@ export default function Posts({
           className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-4 z-[100] cursor-pointer text-white"
           onClick={() => {
             if (navigator.vibrate) {
-              navigator.vibrate(100);
+              navigator.vibrate(50);
             }
             if (!user) {
               setIsCreateAccountOpen(true);
@@ -590,54 +609,33 @@ export default function Posts({
             </DrawerTitle>
           </DrawerHeader>
           <DrawerFooter className="gap-0 px-0 py-0">
-            <div className="px-2 pb-2">
+            <div className="px-2 pb-3">
               <h4 className="font-lora mb-1 text-2xl font-semibold">Filter</h4>
               <div className="flex items-center gap-2 overflow-x-auto text-lg">
-                <button
-                  className={`rounded-full bg-pink-600 px-4 py-2 ${vibeType !== 'random' && 'grayscale'}`}
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setVibeType('random');
-                  }}
-                >
-                  @random
-                </button>
-                <button
-                  className={`rounded-full bg-emerald-600 px-4 py-2 ${vibeType !== 'quickie' && 'grayscale'}`}
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setVibeType('quickie');
-                  }}
-                >
-                  @quickie
-                </button>
-                <button
-                  className={`rounded-full bg-red-600 px-4 py-2 ${vibeType !== 'horror' && 'grayscale'}`}
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setVibeType('horror');
-                  }}
-                >
-                  @horror
-                </button>
-                <button
-                  className={`rounded-full bg-purple-600 px-4 py-2 ${vibeType !== 'nsfw' && 'grayscale'}`}
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setVibeType('nsfw');
-                  }}
-                >
-                  @nsfw
-                </button>
-                <button
-                  className={`rounded-full bg-orange-600 px-4 py-2 ${vibeType !== 'funny' && 'grayscale'}`}
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setVibeType('funny');
-                  }}
-                >
-                  @funny
-                </button>
+                {sortedVibeTypes.map((type) => (
+                  <button
+                    key={type}
+                    className={`rounded-full ${
+                      type === 'random'
+                        ? 'bg-pink-600'
+                        : type === 'quickie'
+                          ? 'bg-emerald-600'
+                          : type === 'horror'
+                            ? 'bg-red-600'
+                            : type === 'nsfw'
+                              ? 'bg-purple-600'
+                              : type === 'funny'
+                                ? 'bg-orange-600'
+                                : 'bg-teal-600'
+                    } px-4 py-2 ${vibeType !== type && 'grayscale'}`}
+                    onClick={() => {
+                      setIsDrawerOpen(false);
+                      setVibeType(type);
+                    }}
+                  >
+                    @{type}
+                  </button>
+                ))}
               </div>
             </div>
             <button

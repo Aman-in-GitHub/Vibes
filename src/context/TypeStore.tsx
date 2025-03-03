@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type TypeOptions = 'horror' | 'nsfw' | 'funny' | 'quickie' | 'random';
+export const VIBE_OPTIONS = [
+  'horror',
+  'nsfw',
+  'funny',
+  // 'wikipedia',
+  'quickie',
+  'random'
+];
+
+type TypeOptions = (typeof VIBE_OPTIONS)[number];
 
 type TypeStore = {
   vibeType: TypeOptions;

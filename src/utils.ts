@@ -35,11 +35,20 @@ export function getPostTypeStyles(type: string) {
     case 'funny':
       return {
         font: 'font-comic font-bold',
-        textColor: 'text-yellow-500',
-        borderColor: 'border-yellow-500',
-        backgroundColor: 'bg-yellow-950',
-        decorationColor: 'decoration-yellow-500',
-        gradientColor: 'from-yellow-500 to-yellow-600'
+        textColor: 'text-orange-500',
+        borderColor: 'border-orange-500',
+        backgroundColor: 'bg-orange-950',
+        decorationColor: 'decoration-orange-500',
+        gradientColor: 'from-orange-500 to-orange-600'
+      };
+    case 'wiki':
+      return {
+        font: 'font-wiki font-bold',
+        textColor: 'text-teal-500',
+        borderColor: 'border-teal-500',
+        backgroundColor: 'bg-teal-950',
+        decorationColor: 'decoration-teal-500',
+        gradientColor: 'from-teal-500 to-teal-600'
       };
     default:
       return {

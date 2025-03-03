@@ -58,6 +58,7 @@ button {
   --font-lora: Lora, serif;
   --font-horror: Creepster, cursive;
   --font-nsfw: Quintessential, serif;
+  --font-wiki: 'Times New Roman', Times, serif;
 }
 
 @custom-variant dark (&:is(.dark *));
