@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router';
 import {
@@ -31,7 +31,7 @@ import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
 import Loader from '@/components/Loader';
-import { db } from '@/lib/dexie';
+import { db, UserType } from '@/lib/dexie';
 import { useIsOnline } from '@/hooks/useIsOnline';
 import { useInView } from 'react-intersection-observer';
 import Confetti from 'react-confetti';
@@ -178,6 +178,213 @@ export async function handleLike(post: PostType) {
     toast.error('Something went wrong while liking the vibe');
   }
 }
+
+function usePostViewTracker({
+  post,
+  delay
+}: {
+  post: PostType;
+  delay: number;
+}) {
+  const { ref, inView } = useInView({
+    threshold: 1,
+    triggerOnce: true
+  });
+  const user = useUserStore((state) => state.user);
+  const setUser = useUserStore((state) => state.setUser);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [hasViewed, setHasViewed] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (inView && !hasViewed) {
+      timerRef.current = setTimeout(async () => {
+        try {
+          if (!user) return;
+
+          if (user?.scrolledPosts?.includes(post.id)) {
+            return;
+          }
+
+          const updatedScrolledPosts = [...user.scrolledPosts, post.id];
+
+          await supabase
+            .from('profiles')
+            .update({ scrolled_posts: updatedScrolledPosts })
+            .eq('auth_id', user.id);
+
+          await db.users.update(user.id, {
+            scrolledPosts: updatedScrolledPosts
+          });
+
+          const updatedUser = await db.users.get(user.id);
+          setUser(updatedUser as UserType);
+          setHasViewed(true);
+        } catch (error) {
+          console.error('Error updating read posts:', error);
+        }
+      }, delay);
+    } else if (!inView && timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [inView, post?.id, delay, hasViewed]);
+
+  return ref;
+}
+
+const PostItem = memo(
+  ({
+    post,
+    isOffline,
+    isBookmarked,
+    isLiked,
+    handleDoubleTap,
+    handleShare,
+    handleReadMore
+  }: {
+    post: PostType;
+    isOffline: boolean;
+    isBookmarked: boolean;
+    isLiked: boolean;
+    handleDoubleTap: (post: PostType) => void;
+    handleShare: (post: PostType, url: string) => void;
+    handleReadMore: (post: PostType) => void;
+  }) => {
+    const ref = usePostViewTracker({
+      post,
+      delay: 3333
+    });
+    const { font, textColor, backgroundColor } = getPostTypeStyles(post.type);
+    const title = capitalizeFirstLetter(post.title);
+
+    return (
+      <section
+        ref={ref}
+        key={post.id}
+        className="motion-opacity-in motion-duration-1000 relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
+      >
+        <div
+          className="flex w-full flex-col justify-center space-y-4"
+          onClick={() => handleDoubleTap(post)}
+        >
+          <div className="-mt-16 px-4">
+            <h2 className={`${font} text-4xl`}>
+              {title.length > 200 ? title.slice(0, 200) + '...' : title}
+            </h2>
+
+            <div className="mt-1 flex items-center gap-2">
+              <p className="font-lora flex items-center gap-1 text-sm">
+                <Hourglass />
+                {calculateReadingTime(post.content)} min
+              </p>
+              {post.isChefsKiss && (
+                <img
+                  src="/chefskiss.png"
+                  alt="Chef's Kiss"
+                  className="motion-opacity-in size-5"
+                />
+              )}
+            </div>
+          </div>
+
+          <p className="font-lora px-4">
+            {post.content.length > 450
+              ? post.preview.slice(0, 350)
+              : post.content}
+            {post.content.length > 450 && post.preview.length > 350 && (
+              <button onClick={() => handleReadMore(post)}>... more</button>
+            )}
+          </p>
+
+          <div className="motion-opacity-in motion-duration-1000 min-h-6">
+            <Marquee
+              autoFill={true}
+              speed={50}
+              gradient={true}
+              gradientColor="hsl(0 0% 3.9%)"
+              gradientWidth={35}
+            >
+              {post.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className={`mr-3 rounded-sm ${backgroundColor} px-2 py-1 ${textColor}`}
+                >
+                  {tag}
+                </span>
+              ))}
+            </Marquee>
+          </div>
+        </div>
+
+        <div className="motion-preset-slide-up motion-duration-1000 absolute bottom-8 z-[10] flex w-full items-center justify-between px-4">
+          <button
+            onClick={() =>
+              handleShare(
+                post,
+                `${import.meta.env.DEV ? 'http://localhost:5173' : 'https://thevibes.pages.dev'}/vibe/${post.id}`
+              )
+            }
+            className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
+          >
+            <Share className={`${textColor} text-4xl`} />
+          </button>
+
+          <button
+            disabled={isOffline}
+            onClick={() => {
+              handleBookmark(post);
+            }}
+            className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
+          >
+            {isBookmarked ? (
+              <BookmarkFill className={`text-4xl ${textColor}`} />
+            ) : (
+              <BookmarkLine className={`text-4xl ${textColor}`} />
+            )}
+          </button>
+
+          {post.content.length > 450 ? (
+            <button
+              onClick={() => handleReadMore(post)}
+              className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
+            >
+              <Play className={`text-4xl ${textColor}`} />
+            </button>
+          ) : (
+            <button
+              disabled={isOffline}
+              onClick={() => handleLike(post)}
+              className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
+            >
+              {isLiked ? (
+                <LikeFill className={`text-4xl ${textColor}`} />
+              ) : (
+                <LikeLine className={`text-4xl ${textColor}`} />
+              )}
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  },
+  (prev, next) =>
+    prev.post.id === next.post.id &&
+    prev.isBookmarked === next.isBookmarked &&
+    prev.isLiked === next.isLiked
+);
 
 export default function Posts({
   type
@@ -327,6 +534,75 @@ export default function Posts({
     enabled: type === 'feed' && !isOffline
   });
 
+  async function fetchPosts(pageParam = 0): Promise<PostType[]> {
+    const from = pageParam * POSTS_PER_PAGE;
+    const to = from + POSTS_PER_PAGE - 1;
+    const readPosts = user?.readPosts || [];
+    const scrolledPosts = user?.scrolledPosts || [];
+
+    try {
+      let supabaseQuery = supabase
+        .from('posts')
+        .select('*')
+        .range(from, to)
+        .not('id', 'in', `(${scrolledPosts.join(',')})`)
+        .not('id', 'in', `(${readPosts.join(',')})`);
+
+      if (vibeType === 'random') {
+        const isNsfw = user?.isNsfw ?? false;
+
+        if (!isNsfw || !isAuthenticated) {
+          supabaseQuery = supabaseQuery.neq('type', 'nsfw');
+        }
+      } else if (vibeType === 'quickie') {
+        const { data, error } = await supabase.rpc('get_short_posts', {
+          offset_param: from,
+          limit_param: POSTS_PER_PAGE,
+          read_posts: readPosts,
+          scrolled_posts: scrolledPosts
+        });
+
+        if (error) throw error;
+        return data || [];
+      } else if (vibeType) {
+        supabaseQuery = supabaseQuery.eq('type', vibeType);
+      }
+
+      const { data, error } = await supabaseQuery.throwOnError();
+      if (error) throw error;
+
+      if (data.length === 0 || data.length < POSTS_PER_PAGE / 2) {
+        supabaseQuery = supabase
+          .from('posts')
+          .select('*')
+          .range(from, to)
+          .not('id', 'in', `(${readPosts.join(',')})`);
+
+        if (vibeType === 'random') {
+          const isNsfw = user?.isNsfw ?? false;
+
+          if (!isNsfw || !isAuthenticated) {
+            supabaseQuery = supabaseQuery.neq('type', 'nsfw');
+          }
+        } else if (vibeType) {
+          supabaseQuery = supabaseQuery.eq('type', vibeType);
+        }
+
+        const { data: secondAttemptData, error: secondAttemptError } =
+          await supabaseQuery.throwOnError();
+
+        if (secondAttemptError) throw secondAttemptError;
+
+        return secondAttemptData || [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      return [];
+    }
+  }
+
   useEffect(() => {
     refetch();
   }, [vibeType]);
@@ -378,37 +654,6 @@ export default function Posts({
     handleBookmark(post);
   }, 300);
 
-  async function fetchPosts(pageParam = 0): Promise<PostType[]> {
-    const from = pageParam * POSTS_PER_PAGE;
-    const to = from + POSTS_PER_PAGE - 1;
-
-    let supabaseQuery = supabase.from('posts').select('*').range(from, to);
-
-    if (vibeType === 'random') {
-    } else if (vibeType === 'quickie') {
-      const { data, error } = await supabase.rpc('get_short_posts', {
-        offset_param: from,
-        limit_param: POSTS_PER_PAGE
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return data || [];
-    } else {
-      supabaseQuery = supabaseQuery.eq('type', vibeType);
-    }
-
-    const { data, error } = await supabaseQuery;
-
-    if (error) {
-      throw error;
-    }
-
-    return data || [];
-  }
-
   function handleShare(post: PostType, url: string) {
     if (navigator.share) {
       navigator.share({
@@ -439,12 +684,14 @@ export default function Posts({
   let posts: PostType[] = [];
 
   if (type === 'feed') {
-    posts = data?.pages.flat() ?? [];
+    posts = useMemo(() => data?.pages.flat() ?? [], [data?.pages]);
   } else if (type === 'bookmark') {
     posts = bookmarkedPosts;
   } else if (type === 'like') {
     posts = likedPosts;
   }
+
+  const memoizedPosts = useMemo(() => posts, [posts.length]);
 
   const sortedVibeTypes = [...VIBE_OPTIONS].sort((a, b) => {
     if (a === vibeType) return -1;
@@ -609,25 +856,27 @@ export default function Posts({
             </AvatarFallback>
           </Avatar>
 
-          {!isAuthenticated && !isPWAInstalled && !isPWA && (
-            <button
-              className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-20 z-[100] cursor-pointer rounded-full bg-[#111111] p-3"
-              onClick={() => {
-                if (navigator.vibrate) {
-                  navigator.vibrate(50);
-                }
+          {!isAuthenticated ||
+            !isPWAInstalled ||
+            (!isPWA && (
+              <button
+                className="motion-preset-slide-left motion-preset-blur-left motion-opacity-in fixed top-4 right-20 z-[100] cursor-pointer rounded-full bg-[#111111] p-3"
+                onClick={() => {
+                  if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                  }
 
-                // @ts-expect-error - PWA type error
-                document.getElementById('pwa-install')?.showDialog(true);
-              }}
-            >
-              {isIOS ? (
-                <AppStore className="text-2xl" />
-              ) : (
-                <PlayStore className="text-2xl" />
-              )}
-            </button>
-          )}
+                  // @ts-expect-error - PWA type error
+                  document.getElementById('pwa-install')?.showDialog(true);
+                }}
+              >
+                {isIOS ? (
+                  <AppStore className="text-2xl" />
+                ) : (
+                  <PlayStore className="text-2xl" />
+                )}
+              </button>
+            ))}
         </>
       )}
 
@@ -642,30 +891,38 @@ export default function Posts({
             <div className="px-2 pb-3">
               <h4 className="font-lora mb-1 text-2xl font-semibold">Filter</h4>
               <div className="flex items-center gap-2 overflow-x-auto text-lg">
-                {sortedVibeTypes.map((type) => (
-                  <button
-                    key={type}
-                    className={`rounded-full ${
-                      type === 'random'
-                        ? 'bg-pink-600'
-                        : type === 'quickie'
-                          ? 'bg-emerald-600'
-                          : type === 'horror'
-                            ? 'bg-red-600'
-                            : type === 'nsfw'
-                              ? 'bg-purple-600'
-                              : type === 'funny'
-                                ? 'bg-orange-600'
-                                : 'bg-teal-600'
-                    } px-4 py-2 ${vibeType !== type && 'grayscale'}`}
-                    onClick={() => {
-                      setIsDrawerOpen(false);
-                      setVibeType(type);
-                    }}
-                  >
-                    @{type}
-                  </button>
-                ))}
+                {sortedVibeTypes.map((type) => {
+                  const isNsfw = user?.isNsfw ?? false;
+
+                  if (type === 'nsfw' && !isNsfw) {
+                    return null;
+                  }
+
+                  return (
+                    <button
+                      key={type}
+                      className={`rounded-full ${
+                        type === 'random'
+                          ? 'bg-pink-600'
+                          : type === 'quickie'
+                            ? 'bg-emerald-600'
+                            : type === 'horror'
+                              ? 'bg-red-600'
+                              : type === 'nsfw'
+                                ? 'bg-purple-600'
+                                : type === 'funny'
+                                  ? 'bg-orange-600'
+                                  : 'bg-teal-600'
+                      } px-4 py-2 ${vibeType !== type && 'grayscale'}`}
+                      onClick={() => {
+                        setIsDrawerOpen(false);
+                        setVibeType(type);
+                      }}
+                    >
+                      @{type}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <button
@@ -763,123 +1020,18 @@ export default function Posts({
         </DialogContent>
       </Dialog>
 
-      {posts.map((post) => {
-        const { font, textColor, backgroundColor } = getPostTypeStyles(
-          post.type
-        );
-        const title = capitalizeFirstLetter(post.title);
-        const isBookmarked = bookmarkedPostIds?.has(post.id) ?? false;
-        const isLiked = likedPostIds?.has(post.id) ?? false;
-
-        return (
-          <section
-            key={post.id}
-            className="motion-opacity-in motion-duration-1000 relative flex h-[100dvh] w-full snap-start snap-always flex-col justify-center space-y-4"
-          >
-            <div
-              className="flex w-full flex-col justify-center space-y-4"
-              onClick={() => handleDoubleTap(post)}
-            >
-              <div className="-mt-16 px-4">
-                <h2 className={`${font} text-4xl`}>
-                  {title.length > 200 ? title.slice(0, 200) + '...' : title}
-                </h2>
-
-                <div className="mt-1 flex items-center gap-2">
-                  <p className="font-lora flex items-center gap-1 text-sm">
-                    <Hourglass />
-                    {calculateReadingTime(post.content)} min
-                  </p>
-                  {post.isChefsKiss && (
-                    <img
-                      src="/chefskiss.png"
-                      alt="Chef's Kiss"
-                      className="motion-opacity-in size-5"
-                    />
-                  )}
-                </div>
-              </div>
-
-              <p className="font-lora px-4">
-                {post.content.length > 450
-                  ? post.preview.slice(0, 350)
-                  : post.content}
-                {post.content.length > 450 && post.preview.length > 350 && (
-                  <button onClick={() => handleReadMore(post)}>... more</button>
-                )}
-              </p>
-
-              <div className="motion-opacity-in motion-duration-1000 min-h-6">
-                <Marquee
-                  autoFill={true}
-                  speed={50}
-                  gradient={true}
-                  gradientColor="hsl(0 0% 3.9%)"
-                  gradientWidth={35}
-                >
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className={`mr-3 rounded-sm ${backgroundColor} px-2 py-1 ${textColor}`}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </Marquee>
-              </div>
-            </div>
-
-            <div className="motion-preset-slide-up motion-duration-1000 absolute bottom-8 z-[10] flex w-full items-center justify-between px-4">
-              <button
-                onClick={() =>
-                  handleShare(
-                    post,
-                    `${import.meta.env.DEV ? 'http://localhost:5173' : 'https://thevibes.pages.dev'}/vibe/${post.id}`
-                  )
-                }
-                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
-              >
-                <Share className={`${textColor} text-4xl`} />
-              </button>
-
-              <button
-                disabled={isOffline}
-                onClick={() => {
-                  handleBookmark(post);
-                }}
-                className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
-              >
-                {isBookmarked ? (
-                  <BookmarkFill className={`text-4xl ${textColor}`} />
-                ) : (
-                  <BookmarkLine className={`text-4xl ${textColor}`} />
-                )}
-              </button>
-
-              {post.content.length > 450 ? (
-                <button
-                  onClick={() => handleReadMore(post)}
-                  className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90`}
-                >
-                  <Play className={`text-4xl ${textColor}`} />
-                </button>
-              ) : (
-                <button
-                  disabled={isOffline}
-                  onClick={() => handleLike(post)}
-                  className={`rounded-full ${backgroundColor} p-4 duration-300 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
-                >
-                  {isLiked ? (
-                    <LikeFill className={`text-4xl ${textColor}`} />
-                  ) : (
-                    <LikeLine className={`text-4xl ${textColor}`} />
-                  )}
-                </button>
-              )}
-            </div>
-          </section>
-        );
-      })}
+      {memoizedPosts.map((post) => (
+        <PostItem
+          key={post.id}
+          post={post}
+          isOffline={isOffline}
+          isBookmarked={bookmarkedPostIds?.has(post.id) ?? false}
+          isLiked={likedPostIds?.has(post.id) ?? false}
+          handleDoubleTap={handleDoubleTap}
+          handleShare={handleShare}
+          handleReadMore={handleReadMore}
+        />
+      ))}
 
       {!hasNextPage && (
         <section

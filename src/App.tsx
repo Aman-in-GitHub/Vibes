@@ -176,18 +176,18 @@ function App() {
   const { isOffline, wasOffline, isOnline } = useIsOnline();
   const setColor = useColorStore((state) => state.setColor);
 
-  if (!isMobile) {
-    return (
-      <main className="flex h-screen flex-col items-center justify-center gap-2 bg-white pt-2 text-xl text-black">
-        <h1 className="px-4 text-center text-lg">
-          <span className="font-lora text-5xl">Vibes</span> is only available on
-          mobile devices <span className="text-xs">(for now*)</span>
-        </h1>
+  // if (!isMobile) {
+  //   return (
+  //     <main className="flex h-screen flex-col items-center justify-center gap-2 bg-white pt-2 text-xl text-black">
+  //       <h1 className="px-4 text-center text-lg">
+  //         <span className="font-lora text-5xl">Vibes</span> is only available on
+  //         mobile devices <span className="text-xs">(for now*)</span>
+  //       </h1>
 
-        <Tldraw persistenceKey="vibes-tldraw-store" />
-      </main>
-    );
-  }
+  //       <Tldraw persistenceKey="vibes-tldraw-store" />
+  //     </main>
+  //   );
+  // }
 
   useEffect(() => {
     if (isAuthenticated) {

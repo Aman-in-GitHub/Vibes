@@ -37,8 +37,8 @@ const db = new Dexie('VibesDatabase') as Dexie & {
 
 db.version(1).stores({
   users: 'id, name, isNsfw',
-  likes: 'id, userId, postId',
-  bookmarks: 'id, userId, postId'
+  likes: 'id, userId, postId, [userId+postId]',
+  bookmarks: 'id, userId, postId, [userId+postId]'
 });
 
 export { db };
