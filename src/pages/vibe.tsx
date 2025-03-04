@@ -3,13 +3,22 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { ScrollProgress } from '@/components/ScrollProgress';
-import { getCurrentUser, getPostTypeStyles } from '@/utils';
+import {
+  getCurrentUser,
+  getPostTypeStyles,
+  splitTextIntoChunks,
+  stripMarkdown
+} from '@/utils';
 import {
   PiHeart as LikeLine,
   PiHeartFill as LikeFill,
   PiBookmarkSimple as BookmarkLine,
   PiBookmarkSimpleFill as BookmarkFill,
-  PiPen as Author
+  PiPen as Author,
+  PiWaveform as Voice,
+  PiStop as Stop,
+  PiPlay as Play,
+  PiX as X
 } from 'react-icons/pi';
 import { handleBookmark, handleLike, PostType } from '@/components/Posts';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -21,6 +30,8 @@ import { toast } from 'sonner';
 import { useIsOnline } from '@/hooks/useIsOnline';
 import useAuth from '@/hooks/useAuth';
 import { useUserStore } from '@/context/UserStore';
+import { motion } from 'motion/react';
+import AnimatedGradient from '@/components/AnimatedGradient';
 
 export default function Vibe() {
   const { isOffline } = useIsOnline();
@@ -28,7 +39,91 @@ export default function Vibe() {
   const location = useLocation();
   const { id } = useParams();
   const [post, setPost] = useState<PostType>(location.state?.post ?? null);
+  const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
+  const [textChunks, setTextChunks] = useState<string[]>([]);
+  const [isTTSMode, setTTSMode] = useState(false);
+
+  useEffect(() => {
+    function handleBeforeUnload() {
+      window.speechSynthesis.cancel();
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!post) return;
+
+    const synth = window.speechSynthesis;
+    const text = stripMarkdown(post.content);
+    const chunks = splitTextIntoChunks(text);
+
+    setTextChunks(chunks);
+
+    setCurrentChunkIndex(0);
+
+    return () => {
+      synth.cancel();
+    };
+  }, [post]);
+
+  function handlePlay() {
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+
+    if (textChunks.length === 0) return;
+
+    const synth = window.speechSynthesis;
+
+    const currentChunk = textChunks[currentChunkIndex];
+    const u = new SpeechSynthesisUtterance(currentChunk);
+
+    u.lang = 'en-US';
+    u.pitch = post.type === 'horror' ? 0.6 : post.type === 'nsfw' ? 1.2 : 1;
+    u.rate = post.type === 'horror' ? 0.85 : post.type === 'nsfw' ? 0.9 : 1;
+    u.volume = 1;
+
+    u.onend = () => {
+      const nextIndex = currentChunkIndex + 1;
+
+      if (nextIndex < textChunks.length) {
+        setCurrentChunkIndex(nextIndex);
+        const nextChunk = textChunks[nextIndex];
+        const nextUtterance = new SpeechSynthesisUtterance(nextChunk);
+        nextUtterance.lang = 'en-US';
+        nextUtterance.pitch =
+          post.type === 'horror' ? 0.6 : post.type === 'nsfw' ? 1.2 : 1;
+        nextUtterance.rate =
+          post.type === 'horror' ? 0.85 : post.type === 'nsfw' ? 0.9 : 1;
+        nextUtterance.volume = 1;
+
+        synth.speak(nextUtterance);
+        setIsPlaying(true);
+      } else {
+        setCurrentChunkIndex(0);
+      }
+    };
+
+    synth.speak(u);
+    setIsPlaying(true);
+  }
+
+  function handleStop() {
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    setCurrentChunkIndex(0);
+    setIsPlaying(false);
+  }
 
   useEffect(() => {
     if (!isAuthenticated || !post) return;
@@ -87,36 +182,30 @@ export default function Vibe() {
     document.title = `${post.title}`;
   }, [post]);
 
-  const userId = useLiveQuery(async () => {
-    const user = await getCurrentUser();
-
-    return user?.id;
-  }, []);
-
   const bookmarkedPosts = useLiveQuery(
     async () => {
-      if (!userId) return new Set<string>();
+      if (!user?.id) return new Set<string>();
 
       const bookmarks = await db.bookmarks
         .where('userId')
-        .equals(userId)
+        .equals(user?.id)
         .toArray();
 
       return new Set(bookmarks.map((b) => b.postId));
     },
-    [userId],
+    [user?.id],
     new Set<string>()
   );
 
   const likedPosts = useLiveQuery(
     async () => {
-      if (!userId) return new Set<string>();
+      if (!user?.id) return new Set<string>();
 
-      const likes = await db.likes.where('userId').equals(userId).toArray();
+      const likes = await db.likes.where('userId').equals(user?.id).toArray();
 
       return new Set(likes.map((l) => l.postId));
     },
-    [userId],
+    [user?.id],
     new Set<string>()
   );
 
@@ -134,106 +223,161 @@ export default function Vibe() {
     borderColor,
     backgroundColor,
     decorationColor,
-    gradientColor
+    gradientColor,
+    colors
   } = getPostTypeStyles(post.type);
 
   const isBookmarked = bookmarkedPosts?.has(post.id) ?? false;
   const isLiked = likedPosts?.has(post.id) ?? false;
 
+  if (isTTSMode) {
+    return (
+      <motion.div className="motion-duration-1000 motion-blur-in flex h-[100dvh] flex-col items-center justify-center gap-12">
+        <AnimatedGradient colors={colors} speed={0.1} blur="medium" />
+
+        <button
+          className={`fixed top-2 right-2 z-[100] flex size-10 items-center justify-center rounded-full bg-[#111] ${borderColor} border-2`}
+          onClick={() => {
+            if (navigator.vibrate) {
+              navigator.vibrate(50);
+            }
+            handleStop();
+            setTTSMode(!isTTSMode);
+          }}
+        >
+          <X className="text-2xl text-white" />
+        </button>
+        <button
+          className="motion-preset-slide-left-md rounded-full bg-red-950 p-8 duration-500 active:scale-90"
+          onClick={() => handleStop()}
+        >
+          <Stop className="text-8xl text-red-600" />
+        </button>
+        <button
+          className="motion-preset-slide-right-md rounded-full bg-green-950 p-8 duration-500 active:scale-90"
+          onClick={() => (isPlaying ? handleStop() : handlePlay())}
+        >
+          {isPlaying ? (
+            <Voice className="text-8xl text-green-600" />
+          ) : (
+            <Play className="text-8xl text-green-600" />
+          )}
+        </button>
+      </motion.div>
+    );
+  }
+
   return (
     <main className="relative">
-      <ScrollProgress className={`${gradientColor}`} />
-
-      {post.content.length < 500 ? (
+      {post.content.length < 450 ? (
         <div className="px-4">
           <h1 className={`${font} mt-4 mb-6 text-5xl`}>{post.title}</h1>
           <p className="font-lora mb-3 text-lg">{post.content}</p>
         </div>
       ) : (
-        <Markdown
-          className="w-full px-4"
-          components={{
-            // Headings
-            h1: ({ node, ...props }) => (
-              <h1 {...props} className={`${font} mt-4 mb-6 text-5xl`} />
-            ),
-            h2: ({ node, ...props }) => (
-              <h2
-                {...props}
-                className="font-geist mb-4 text-2xl font-semibold"
-              />
-            ),
-            h3: ({ node, ...props }) => (
-              <h3 {...props} className="font-geist mb-3 text-xl font-medium" />
-            ),
+        <>
+          <ScrollProgress className={`${gradientColor}`} />
 
-            // Paragraphs
-            p: ({ node, ...props }) => (
-              <p {...props} className="font-lora mb-3 text-lg" />
-            ),
+          <Markdown
+            className="w-full px-4"
+            components={{
+              // Headings
+              h1: ({ node, ...props }) => (
+                <h1 {...props} className={`${font} mt-4 mb-6 text-5xl`} />
+              ),
+              h2: ({ node, ...props }) => (
+                <h2
+                  {...props}
+                  className="font-geist mb-4 text-2xl font-semibold"
+                />
+              ),
+              h3: ({ node, ...props }) => (
+                <h3
+                  {...props}
+                  className="font-geist mb-3 text-xl font-medium"
+                />
+              ),
 
-            // Links
-            a: ({ node, ...props }) => (
-              <a
-                {...props}
-                className={`cursor-pointer underline ${decorationColor} underline-offset-2`}
-              />
-            ),
+              // Paragraphs
+              p: ({ node, ...props }) => (
+                <p {...props} className="font-lora mb-3 text-lg" />
+              ),
 
-            // Lists
-            ul: ({ node, ...props }) => (
-              <ul {...props} className="mb-4 ml-6 list-disc" />
-            ),
-            ol: ({ node, ...props }) => (
-              <ol {...props} className="mb-4 ml-6 list-decimal" />
-            ),
-            li: ({ node, ...props }) => <li {...props} className="mb-2" />,
+              // Links
+              a: ({ node, ...props }) => (
+                <a
+                  {...props}
+                  className={`cursor-pointer underline ${decorationColor} underline-offset-2`}
+                />
+              ),
 
-            // Code
-            code: ({ node, ...props }) => (
-              <code
-                {...props}
-                className="block overflow-x-auto rounded-lg bg-neutral-900 p-4 font-mono text-sm"
-              />
-            ),
+              // Lists
+              ul: ({ node, ...props }) => (
+                <ul {...props} className="mb-4 ml-6 list-disc" />
+              ),
+              ol: ({ node, ...props }) => (
+                <ol {...props} className="mb-4 ml-6 list-decimal" />
+              ),
+              li: ({ node, ...props }) => <li {...props} className="mb-2" />,
 
-            // Blockquote
-            blockquote: ({ node, ...props }) => (
-              <blockquote
-                {...props}
-                className={`my-4 border-l-4 ${borderColor} pl-4 italic`}
-              />
-            ),
+              // Code
+              code: ({ node, ...props }) => (
+                <code
+                  {...props}
+                  className="block overflow-x-auto rounded-lg bg-neutral-900 p-4 font-mono text-sm"
+                />
+              ),
 
-            // Tables
-            table: ({ node, ...props }) => (
-              <table {...props} className="mb-4 w-full border-collapse" />
-            ),
-            th: ({ node, ...props }) => (
-              <th
-                {...props}
-                className="border bg-neutral-100 p-2 text-left font-semibold"
-              />
-            ),
-            td: ({ node, ...props }) => (
-              <td {...props} className="border p-2" />
-            ),
+              // Blockquote
+              blockquote: ({ node, ...props }) => (
+                <blockquote
+                  {...props}
+                  className={`my-4 border-l-4 ${borderColor} pl-4 italic`}
+                />
+              ),
 
-            // Images
-            img: ({ node, ...props }) => (
-              <img {...props} className="my-4 h-auto max-w-full rounded-lg" />
-            ),
+              // Tables
+              table: ({ node, ...props }) => (
+                <table {...props} className="mb-4 w-full border-collapse" />
+              ),
+              th: ({ node, ...props }) => (
+                <th
+                  {...props}
+                  className="border bg-neutral-100 p-2 text-left font-semibold"
+                />
+              ),
+              td: ({ node, ...props }) => (
+                <td {...props} className="border p-2" />
+              ),
 
-            // Horizontal Rule
-            hr: ({ node, ...props }) => (
-              <hr {...props} className="my-6 border-t border-neutral-400" />
-            )
-          }}
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
-        >
-          {post.content}
-        </Markdown>
+              // Images
+              img: ({ node, ...props }) => (
+                <img {...props} className="my-4 h-auto max-w-full rounded-lg" />
+              ),
+
+              // Horizontal Rule
+              hr: ({ node, ...props }) => (
+                <hr {...props} className="my-6 border-t border-neutral-400" />
+              )
+            }}
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+          >
+            {post.content}
+          </Markdown>
+
+          <button
+            className={`fixed top-2 right-2 z-[100] flex size-10 items-center justify-center rounded-full bg-[#111] ${borderColor} border-2`}
+            onClick={() => {
+              if (navigator.vibrate) {
+                navigator.vibrate(50);
+              }
+              setTTSMode(!isTTSMode);
+            }}
+          >
+            <Voice className="text-2xl text-white" />
+          </button>
+        </>
       )}
 
       <p className={`${font} flex items-center gap-2 px-4 pb-4 text-xl`}>

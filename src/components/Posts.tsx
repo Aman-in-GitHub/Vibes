@@ -804,7 +804,7 @@ export default function Posts({
                 {post.content.length > 450
                   ? post.preview.slice(0, 350)
                   : post.content}
-                {post.preview.length > 350 && (
+                {post.content.length > 450 && post.preview.length > 350 && (
                   <button onClick={() => handleReadMore(post)}>... more</button>
                 )}
               </p>

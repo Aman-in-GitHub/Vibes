@@ -21,7 +21,8 @@ export function getPostTypeStyles(type: string) {
         borderColor: 'border-red-500',
         backgroundColor: 'bg-red-950',
         decorationColor: 'decoration-red-500',
-        gradientColor: 'from-red-500 to-red-600'
+        gradientColor: 'from-red-500 to-red-600',
+        colors: ['#ff4d4d', '#cc0000', '#990000']
       };
     case 'nsfw':
       return {
@@ -30,7 +31,8 @@ export function getPostTypeStyles(type: string) {
         borderColor: 'border-purple-500',
         backgroundColor: 'bg-purple-950',
         decorationColor: 'decoration-purple-500',
-        gradientColor: 'from-purple-500 to-purple-600'
+        gradientColor: 'from-purple-500 to-purple-600',
+        colors: ['#d48cff', '#a855f7', '#7e22ce']
       };
     case 'funny':
       return {
@@ -39,7 +41,8 @@ export function getPostTypeStyles(type: string) {
         borderColor: 'border-orange-500',
         backgroundColor: 'bg-orange-950',
         decorationColor: 'decoration-orange-500',
-        gradientColor: 'from-orange-500 to-orange-600'
+        gradientColor: 'from-orange-500 to-orange-600',
+        colors: ['#ffb347', '#ff8c00', '#e07b00']
       };
     case 'wiki':
       return {
@@ -48,7 +51,8 @@ export function getPostTypeStyles(type: string) {
         borderColor: 'border-teal-500',
         backgroundColor: 'bg-teal-950',
         decorationColor: 'decoration-teal-500',
-        gradientColor: 'from-teal-500 to-teal-600'
+        gradientColor: 'from-teal-500 to-teal-600',
+        colors: ['#66d9e8', '#20c997', '#198f75']
       };
     default:
       return {
@@ -57,7 +61,8 @@ export function getPostTypeStyles(type: string) {
         borderColor: 'border-green-500',
         backgroundColor: 'bg-green-950',
         decorationColor: 'decoration-green-500',
-        gradientColor: 'from-green-500 to-green-600'
+        gradientColor: 'from-green-500 to-green-600',
+        colors: ['#66ff66', '#33cc33', '#009900']
       };
   }
 }
@@ -86,4 +91,41 @@ export function getRandomColor() {
   ];
 
   return colors[Math.floor(Math.random() * colors.length)];
+}
+
+export function stripMarkdown(markdown: string) {
+  return markdown
+    .replace(/#+\s*/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
+export function splitTextIntoChunks(
+  text: string,
+  maxLength: number = 3500
+): string[] {
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  const words = text.split(/(\s+)/);
+
+  for (const word of words) {
+    if (currentChunk.length + word.length > maxLength) {
+      chunks.push(currentChunk);
+      currentChunk = '';
+    }
+
+    currentChunk += word;
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
 }

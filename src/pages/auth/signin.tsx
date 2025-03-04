@@ -214,7 +214,7 @@ function SignIn() {
   }
 
   return (
-    <main className="motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
+    <main className="motion-opacity-in motion-duration-1000 relative mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
       {screen === 'signin' ? (
         <>
           <h1 className="mb-4 text-7xl font-bold">Log in to your account</h1>
@@ -295,6 +295,14 @@ function SignIn() {
           </button>
         </section>
       )}
+
+      <Link
+        to="/"
+        replace={true}
+        className="absolute right-0 bottom-0 pb-4 text-sm whitespace-nowrap text-neutral-400 underline underline-offset-2"
+      >
+        Continue as Guest
+      </Link>
     </main>
   );
 }

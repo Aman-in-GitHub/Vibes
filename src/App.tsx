@@ -174,7 +174,6 @@ async function syncLocalDatabaseWithSupabase() {
 function App() {
   const { isAuthenticated } = useAuth();
   const { isOffline, wasOffline, isOnline } = useIsOnline();
-  const color = useColorStore((state) => state.color);
   const setColor = useColorStore((state) => state.setColor);
 
   if (!isMobile) {
@@ -182,7 +181,7 @@ function App() {
       <main className="flex h-screen flex-col items-center justify-center gap-2 bg-white pt-2 text-xl text-black">
         <h1 className="px-4 text-center text-lg">
           <span className="font-lora text-5xl">Vibes</span> is only available on
-          mobile devices. <span className="text-xs">(for now*)</span>
+          mobile devices <span className="text-xs">(for now*)</span>
         </h1>
 
         <Tldraw persistenceKey="vibes-tldraw-store" />
@@ -192,9 +191,7 @@ function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (!color) {
-        setColor(getRandomColor());
-      }
+      setColor(getRandomColor());
     }
 
     if (isAuthenticated && isOnline) {
