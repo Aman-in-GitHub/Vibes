@@ -79,7 +79,7 @@ const SignUpSchema = z.object({
     .min(1, 'Your email is required')
     .email('Enter a valid email'),
   name: z.string().min(1, 'Your name is required'),
-  age: z.number().min(12, 'Your must be 12 years or older'),
+  age: z.number().min(18, 'Your must be 18 years or older'),
   sex: z.enum(['Male', 'Female']),
   isNsfw: z.boolean().optional(),
   terms: z.boolean().refine((val) => val === true, {
@@ -110,7 +110,7 @@ function SignUp() {
     defaultValues: {
       email: '',
       name: '',
-      age: 10,
+      age: 15,
       sex: 'Male',
       isNsfw: false,
       terms: false
