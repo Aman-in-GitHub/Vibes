@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router';
 import {
@@ -691,8 +691,6 @@ export default function Posts({
     posts = likedPosts;
   }
 
-  const memoizedPosts = useMemo(() => posts, [posts.length]);
-
   const sortedVibeTypes = [...VIBE_OPTIONS].sort((a, b) => {
     if (a === vibeType) return -1;
     if (b === vibeType) return 1;
@@ -735,7 +733,7 @@ export default function Posts({
     );
   }
 
-  if (error && type === 'feed') {
+  if (error) {
     return (
       <section className="flex h-[100dvh] items-center justify-center bg-red-950 px-4">
         <h2 className="text-xl text-red-500">{JSON.stringify(error)}</h2>
@@ -965,7 +963,7 @@ export default function Posts({
                   setVibeType('nsfw');
                 }
 
-                window.location.reload();
+                setIsDrawerOpen(false);
               }}
             >
               Show NSFW
@@ -1065,7 +1063,7 @@ export default function Posts({
         </DialogContent>
       </Dialog>
 
-      {memoizedPosts.map((post) => (
+      {posts.map((post) => (
         <PostItem
           key={post.id}
           post={post}

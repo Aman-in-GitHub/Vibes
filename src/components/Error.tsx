@@ -15,6 +15,17 @@ function Error({ error, reset }: { error: Error; reset: () => void }) {
       <button onClick={reset} className="rounded-xs bg-red-600 px-4 py-2">
         Try again
       </button>
+
+      <p className="text-center">
+        Notify me @
+        <a
+          href="mailto:amanchandinc@gmail.com?subject=Vibes ~ Error Report"
+          className="text-red-500 underline decoration-red-500 underline-offset-2"
+        >
+          my email
+        </a>{' '}
+        about this error
+      </p>
     </section>
   );
 }

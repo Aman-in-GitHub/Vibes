@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 
 function NotFound() {
   useEffect(() => {
-    document.title = '404 - Vibes';
+    document.title = '404 ~ Vibes';
   }, []);
 
   return (

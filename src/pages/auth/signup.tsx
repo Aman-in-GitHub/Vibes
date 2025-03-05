@@ -118,7 +118,7 @@ function SignUp() {
   });
 
   useEffect(() => {
-    document.title = 'Signup - Vibes';
+    document.title = 'Signup ~ Vibes';
   }, []);
 
   if (isLoading) {
@@ -385,7 +385,7 @@ function SignUp() {
                     <DrawerContent>
                       <DrawerHeader>
                         <DrawerTitle className="text-center">
-                          Terms & Conditions - Vibes
+                          Terms & Conditions ~ Vibes
                         </DrawerTitle>
                         <DrawerDescription className="-mb-6 h-[60dvh] overflow-y-auto">
                           <Markdown

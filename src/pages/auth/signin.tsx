@@ -43,7 +43,7 @@ function SignIn() {
     });
 
   useEffect(() => {
-    document.title = 'Signin - Vibes';
+    document.title = 'Signin ~ Vibes';
   }, []);
 
   if (isLoading) {
