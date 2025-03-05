@@ -26,7 +26,8 @@ export default defineConfig({
         'fonts/Geist.woff2',
         'fonts/Lora.woff2',
         'fonts/Creepster.woff2',
-        'fonts/Quintessential.woff2'
+        'fonts/Quintessential.woff2',
+        'fonts/ComicSansMS.woff2'
       ],
       strategies: 'generateSW',
       workbox: {

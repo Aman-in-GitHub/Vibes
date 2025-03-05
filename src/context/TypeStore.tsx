@@ -3,10 +3,10 @@ import { persist } from 'zustand/middleware';
 
 export const VIBE_OPTIONS = [
   'horror',
+  'quickie',
   'nsfw',
   'funny',
-  // 'wikipedia',
-  'quickie',
+  'conspiracy',
   'random'
 ];
 

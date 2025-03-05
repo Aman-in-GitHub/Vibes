@@ -37,16 +37,16 @@ export function getPostTypeStyles(type: string) {
     case 'funny':
       return {
         font: 'font-comic font-bold',
-        textColor: 'text-orange-500',
-        borderColor: 'border-orange-500',
-        backgroundColor: 'bg-orange-950',
-        decorationColor: 'decoration-orange-500',
-        gradientColor: 'from-orange-500 to-orange-600',
-        colors: ['#ffb347', '#ff8c00', '#e07b00']
+        textColor: 'text-yellow-500',
+        borderColor: 'border-yellow-500',
+        backgroundColor: 'bg-yellow-950',
+        decorationColor: 'decoration-yellow-500',
+        gradientColor: 'from-yellow-500 to-yellow-600',
+        colors: ['#fff9c4', '#ffb300', '#ffd700']
       };
-    case 'wiki':
+    case 'conspiracy':
       return {
-        font: 'font-wiki font-bold',
+        font: 'font-conspiracy font-bold',
         textColor: 'text-teal-500',
         borderColor: 'border-teal-500',
         backgroundColor: 'bg-teal-950',
@@ -86,8 +86,7 @@ export function getRandomColor() {
     '#e64553',
     '#fe640b',
     '#40a02b',
-    '#1e66f5',
-    '#7287fd'
+    '#1e66f5'
   ];
 
   return colors[Math.floor(Math.random() * colors.length)];

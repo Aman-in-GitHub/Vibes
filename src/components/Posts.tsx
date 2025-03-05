@@ -684,7 +684,7 @@ export default function Posts({
   let posts: PostType[] = [];
 
   if (type === 'feed') {
-    posts = useMemo(() => data?.pages.flat() ?? [], [data?.pages]);
+    posts = data?.pages.flat() ?? [];
   } else if (type === 'bookmark') {
     posts = bookmarkedPosts;
   } else if (type === 'like') {
@@ -792,7 +792,6 @@ export default function Posts({
                 className="font-lora underline underline-offset-2"
                 onClick={() => {
                   setVibeType('random');
-                  window.location.reload();
                 }}
               >
                 random
@@ -881,7 +880,7 @@ export default function Posts({
       )}
 
       <Drawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
-        <DrawerContent className="px-0">
+        <DrawerContent className="border-0 px-0 outline-0">
           <DrawerHeader>
             <DrawerTitle className="-mb-1 flex items-center justify-center gap-2 text-3xl">
               Settings
@@ -912,7 +911,9 @@ export default function Posts({
                                 ? 'bg-purple-600'
                                 : type === 'funny'
                                   ? 'bg-orange-600'
-                                  : 'bg-teal-600'
+                                  : type === 'conspiracy'
+                                    ? 'bg-teal-600'
+                                    : 'bg-green-600'
                       } px-4 py-2 ${vibeType !== type && 'grayscale'}`}
                       onClick={() => {
                         setIsDrawerOpen(false);
@@ -925,6 +926,51 @@ export default function Posts({
                 })}
               </div>
             </div>
+
+            <button
+              className="flex w-full items-center justify-between bg-purple-600 px-4 py-4 text-xl duration-300 active:bg-purple-500"
+              onClick={async () => {
+                const isUnderAge = Number(user?.age) < 18;
+                const isNsfw = user?.isNsfw;
+
+                if (isUnderAge) {
+                  toast.error('You are underage for NSFW content');
+                  return;
+                }
+
+                if (isNsfw) {
+                  await supabase
+                    .from('profiles')
+                    .update({ is_nsfw: false })
+                    .eq('auth_id', user.id);
+
+                  await db.users.update(user.id, {
+                    isNsfw: false
+                  });
+
+                  if (vibeType === 'nsfw') {
+                    setVibeType('random');
+                  }
+                } else {
+                  await supabase
+                    .from('profiles')
+                    .update({ is_nsfw: true })
+                    .eq('auth_id', user?.id);
+
+                  // @ts-expect-error - Dexie type error
+                  await db.users.update(user?.id, {
+                    isNsfw: true
+                  });
+
+                  setVibeType('nsfw');
+                }
+
+                window.location.reload();
+              }}
+            >
+              Show NSFW
+              <span>{user?.isNsfw ? 'On' : 'Off'}</span>
+            </button>
             <button
               className="flex w-full items-center justify-between bg-rose-600 px-4 py-4 text-xl duration-300 active:bg-rose-500"
               onClick={() => navigate('/favorites')}
@@ -939,7 +985,6 @@ export default function Posts({
               Your Bookmarks
               <Link className="text-3xl text-blue-200" />
             </button>
-
             <button
               className="flex w-full items-center justify-between bg-red-950 px-4 py-4 text-xl text-red-500 duration-300"
               onClick={() => setIsDeleteAccountOpen(true)}

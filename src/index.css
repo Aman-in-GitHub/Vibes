@@ -53,12 +53,21 @@ button {
   src: url('/fonts/Quintessential.woff2') format('woff2');
 }
 
+/* Comic Sans MS */
+@font-face {
+  font-display: swap;
+  font-family: 'Comic Sans MS';
+  font-style: normal;
+  src: url('/fonts/ComicSansMS.woff2') format('woff2');
+}
+
 @theme {
   --font-geist: Geist, sans-serif;
   --font-lora: Lora, serif;
   --font-horror: Creepster, cursive;
   --font-nsfw: Quintessential, serif;
-  --font-wiki: 'Times New Roman', Times, serif;
+  --font-comic: 'Comic Sans MS', cursive;
+  --font-conspiracy: 'Times New Roman', Times, serif;
 }
 
 @custom-variant dark (&:is(.dark *));

@@ -30,8 +30,6 @@ import {
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { AnimatePresence, motion } from 'motion/react';
-import Confetti from 'react-confetti';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
 
@@ -97,7 +95,6 @@ function SignUp() {
   const { isAuthenticated, isLoading } = useAuth();
   const [hasReadTerms, setHasReadTerms] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
   const setUser = useUserStore((state) => state.setUser);
   const clearUser = useUserStore((state) => state.clearUser);
   const clearColor = useColorStore((state) => state.clearColor);
@@ -134,16 +131,6 @@ function SignUp() {
     }
     return <Navigate to="/" replace={true} />;
   }
-
-  useEffect(() => {
-    if (showConfetti) {
-      const timer = setTimeout(() => {
-        setShowConfetti(false);
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [showConfetti]);
 
   async function onSignUp(data: SignUpFormData) {
     if (!hasReadTerms) {
@@ -237,7 +224,6 @@ function SignUp() {
       reset();
       setOtp('');
       setHasReadTerms(false);
-      setShowConfetti(true);
 
       return <Navigate to="/" replace={true} />;
     } catch (error) {
@@ -253,24 +239,6 @@ function SignUp() {
 
   return (
     <main className="motion-opacity-in motion-duration-1000 mx-auto flex min-h-screen max-w-[90%] flex-col justify-center py-8">
-      <AnimatePresence>
-        {showConfetti && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.5 }}
-          >
-            <Confetti
-              width={window.innerWidth}
-              height={window.innerHeight}
-              numberOfPieces={250}
-              gravity={0.1}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {screen === 'signup' ? (
         <>
           <h1 className="mb-4 text-7xl font-bold">Create a new account</h1>

@@ -3,6 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="Aman Chand" />
+    <meta
+      name="description"
+      content="Discover your next favorite story with Vibes. Read across multiple genres, save bookmarks, customize your reading experience, and enjoy vibes anytime, anywhere."
+    />
+    <title>Vibes</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://thevibes.pages.dev" />
+    <meta property="og:title" content="Vibes - Feel Every Word" />
+    <meta
+      property="og:description"
+      content="Discover your next favorite story with Vibes. Read across multiple genres, save bookmarks, customize your reading experience, and enjoy vibes anytime, anywhere."
+    />
+    <meta property="og:image" content="/apple-touch-icon-180x180.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://thevibes.pages.dev" />
+    <meta property="twitter:title" content="Vibes - Feel Every Word" />
+    <meta
+      property="twitter:description"
+      content="Discover your next favorite story with Vibes. Read across multiple genres, save bookmarks, customize your reading experience, and enjoy vibes anytime, anywhere."
+    />
+    <meta property="twitter:image" content="/apple-touch-icon-180x180.png" />
+
+    <!-- Keywords -->
+    <meta
+      name="keywords"
+      content="vibe, reading app, digital books, book genres, reading platform, online reading, fiction, non-fiction, fantasy, sci-fi, romance, thriller, mystery, biography, reading experience"
+    />
+
+    <!-- Favicon -->
     <link
       rel="icon"
       href="/favicon-white.ico"
@@ -45,10 +79,33 @@
       type="font/woff2"
       crossorigin
     />
+    <link
+      rel="preload"
+      href="/fonts/ComicSansMS.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
 
-    <!-- React Scan -->
-    <!-- <script src="https://unpkg.com/react-scan/dist/auto.global.js"></script> -->
-    <title>Vibes</title>
+    <!-- Canonical Link -->
+    <link rel="canonical" href="https://thevibes.pages.dev" />
+
+    <!-- Robots -->
+    <meta name="robots" content="index, follow" />
+
+    <!-- Structured Data - WebSite -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Vibes",
+        "url": "https://thevibes.pages.dev"
+      }
+    </script>
+
+    <!-- iOS Specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   </head>
   <body class="font-geist">
     <div id="root"></div>

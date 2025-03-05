@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { db } from '@/lib/dexie';
 import { useUserStore } from '@/context/UserStore';
 import { useColorStore } from '@/context/ColorStore';
+import { useTypeStore } from '@/context/TypeStore';
 
 export interface AuthState {
   user: User | null;
@@ -27,6 +28,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const clearUser = useUserStore((state) => state.clearUser);
   const clearColor = useColorStore((state) => state.clearColor);
+  const clearVibeType = useTypeStore((state) => state.clearVibeType);
 
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -45,6 +47,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     await db.bookmarks.clear();
     clearUser();
     clearColor();
+    clearVibeType();
 
     try {
       await supabase.auth.signOut();
