@@ -10,9 +10,11 @@ You can check it out at [thevibes.pages.dev](https://thevibes.pages.dev).
 
 - Use as an audiobook (listen to any story or an article before going to bed or when your hands are busy)
 
-- No attention span no worries (stories/jokes/articles under 1 min for quick read)
+- No attention span? no worries (stories/jokes/articles under 1 min for quick read)
 
 - Offline use (download the app locally in your phone and all the vibes you like or bookmark will be saved locally for offline read)
+
+- Complete native experience (works offline, downloadable as an app, uses IndexedDB for storage, and supports native app shortcuts)
 
 ## **Tech Stack**
 
