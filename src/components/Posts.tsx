@@ -265,7 +265,7 @@ const PostItem = memo(
   }) => {
     const ref = usePostViewTracker({
       post,
-      delay: 3333
+      delay: 3500
     });
     const { font, textColor, backgroundColor } = getPostTypeStyles(post.type);
     const title = capitalizeFirstLetter(post.title);
@@ -281,7 +281,7 @@ const PostItem = memo(
           onClick={() => handleDoubleTap(post)}
         >
           <div className="-mt-16 px-4">
-            <h2 className={`${font} text-4xl`}>
+            <h2 className={`${font} text-3xl`}>
               {title.length > 200 ? title.slice(0, 200) + '...' : title}
             </h2>
 

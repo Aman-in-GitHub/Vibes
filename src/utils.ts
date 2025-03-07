@@ -36,7 +36,7 @@ export function getPostTypeStyles(type: string) {
       };
     case 'funny':
       return {
-        font: 'font-comic font-bold',
+        font: 'font-comic font-black',
         textColor: 'text-yellow-500',
         borderColor: 'border-yellow-500',
         backgroundColor: 'bg-yellow-950',
