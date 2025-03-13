@@ -37,7 +37,3 @@ Firstly, the stories/posts from various sites like Reddit, Creepasta, Literotica
 [![Screenshot-20250305-185611-Chrome.jpg](https://i.postimg.cc/sxhJHQSL/Screenshot-20250305-185611-Chrome.jpg)](https://postimg.cc/5Qfv6ts5)
 
 [![Screenshot-20250305-185739-Chrome.jpg](https://i.postimg.cc/W3QGZNKw/Screenshot-20250305-185739-Chrome.jpg)](https://postimg.cc/LY3gKpmJ)
-
-## **NOTE**
-
-The Desktop UI is currently WIP, only mobile devices are supported for now.
